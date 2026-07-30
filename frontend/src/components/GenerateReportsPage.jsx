@@ -1,13 +1,26 @@
 import React, { useState } from 'react';
 
 export default function GenerateReportsPage() {
-  const [reportType, setReportType] = useState('Summary of financial contributions');
+  const [reportType, setReportType] = useState('Paid & Remitted Member Contributions');
+  const [exportFormat, setExportFormat] = useState('CSV (.csv)'); // CSV, Excel, PDF
   const [fromDate, setFromDate] = useState('2026-01-01');
   const [toDate, setToDate] = useState('2026-07-28');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Sample data maps for different report types
+  // Sample data maps for report categories
   const reportData = {
+    'Paid & Remitted Member Contributions': [
+      { col1: 'Prof. Antonio Mendoza', col2: 'College of Arts & Sciences', col3: 'Remitted (Jul 28, 2026)', col4: '₱ 42,000.00' },
+      { col1: 'Dr. Fernando Lopez', col2: 'College of Agriculture', col3: 'Remitted (Jul 24, 2026)', col4: '₱ 45,100.00' },
+      { col1: 'Dr. Juan Dela Cruz', col2: 'College of Computing & IT', col3: 'Remitted (Jul 27, 2026)', col4: '₱ 34,200.00' },
+      { col1: 'Dr. Clarissa Reyes', col2: 'College of Business Admin', col3: 'Remitted (Jul 27, 2026)', col4: '₱ 31,500.00' },
+      { col1: 'Prof. Maria Santos', col2: 'College of Teacher Education', col3: 'Remitted (Jul 28, 2026)', col4: '₱ 28,500.00' }
+    ],
+    'Outstanding / Unremitted Dues Summary': [
+      { col1: 'Engr. Roberto Garcia', col2: 'College of Engineering', col3: 'Unremitted (On leave)', col4: '₱ 2,500.00' },
+      { col1: 'Prof. Elena Ramos', col2: 'College of Nursing', col3: 'Pending Remittance', col4: '₱ 1,500.00' },
+      { col1: 'Prof. Beatriz Laurel', col2: 'College of Teacher Education', col3: 'Retired - Final Audit', col4: '₱ 500.00' }
+    ],
     'Summary of financial contributions': [
       { col1: 'Prof. Antonio Mendoza', col2: 'Monthly Dues + Mutual Aid', col3: '14 Transactions', col4: '₱ 42,000.00' },
       { col1: 'Dr. Fernando Lopez', col2: 'Monthly Dues + Mutual Aid', col3: '15 Transactions', col4: '₱ 45,100.00' },
@@ -35,15 +48,127 @@ export default function GenerateReportsPage() {
     ]
   };
 
-  const handleExport = () => {
-    setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
-      alert(`Report "${reportType}" successfully generated and ready for download!`);
-    }, 800);
+  const currentRows = reportData[reportType] || reportData['Paid & Remitted Member Contributions'];
+
+  // Table Headers helper based on selected report category
+  const getTableHeaders = () => {
+    if (reportType === 'Audit-ready transaction report') {
+      return ['Reference #', 'Member', 'Date Logged', 'Amount'];
+    }
+    if (reportType === 'Assistance disbursement report') {
+      return ['Member', 'Assistance Category', 'Disbursement Status', 'Total Amount'];
+    }
+    if (reportType === 'Paid & Remitted Member Contributions') {
+      return ['Faculty Member', 'College / Dept', 'Remittance Status', 'Total Remitted'];
+    }
+    if (reportType === 'Outstanding / Unremitted Dues Summary') {
+      return ['Faculty Member', 'College / Dept', 'Outstanding Status', 'Unremitted Balance'];
+    }
+    return ['Faculty Member', 'Category / Dept', 'Record Count / Status', 'Running Total'];
   };
 
-  const currentRows = reportData[reportType] || reportData['Summary of financial contributions'];
+  // Robust, Bug-Free File Export Handler
+  const handleExport = () => {
+    setIsExporting(true);
+
+    setTimeout(() => {
+      const headers = getTableHeaders();
+      const sanitizeName = reportType.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+      // Handling PDF Export via Clean Printable Document View
+      if (exportFormat.includes('PDF')) {
+        const printWin = window.open('', '_blank', 'width=900,height=700');
+        if (printWin) {
+          const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>U.C.A.R.E. Report - ${reportType}</title>
+              <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #1e293b; }
+                .header { border-bottom: 2px solid #8b1e3f; padding-bottom: 12px; margin-bottom: 20px; }
+                .title { font-size: 20px; font-weight: bold; color: #8b1e3f; }
+                .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+                .meta { font-size: 12px; margin-bottom: 20px; color: #475569; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th { background-color: #8b1e3f; color: white; padding: 10px; text-align: left; font-size: 12px; }
+                td { padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+                tr:nth-child(even) { background-color: #f8fafc; }
+                .footer { margin-top: 30px; font-size: 11px; color: #94a3b8; text-align: center; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <div class="title">U.C.A.R.E. Official Union Report</div>
+                <div class="subtitle">ISPSC Tagudin Federated Faculty Union • ${reportType}</div>
+              </div>
+              <div class="meta">
+                <strong>Date Range:</strong> ${fromDate} to ${toDate} &nbsp;|&nbsp;
+                <strong>Generated On:</strong> ${new Date().toLocaleString()}
+              </div>
+              <table>
+                <thead>
+                  <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                  ${currentRows.map(r => `
+                    <tr>
+                      <td><strong>${r.col1}</strong></td>
+                      <td>${r.col2}</td>
+                      <td>${r.col3}</td>
+                      <td><strong>${r.col4}</strong></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              <div class="footer">Confidential System Document • ISPSC Tagudin Faculty Union Admin Panel</div>
+              <script>window.onload = function() { window.print(); };</script>
+            </body>
+            </html>
+          `;
+          printWin.document.write(htmlContent);
+          printWin.document.close();
+        }
+        setIsExporting(false);
+        return;
+      }
+
+      // Handling CSV & Excel (.csv / .xlsx compatible format with UTF-8 BOM \uFEFF)
+      const fileHeader = headers.map(h => `"${h}"`);
+      const fileRows = currentRows.map(r => [
+        `"${r.col1.replace(/"/g, '""')}"`,
+        `"${r.col2.replace(/"/g, '""')}"`,
+        `"${r.col3.replace(/"/g, '""')}"`,
+        `"${r.col4.replace(/"/g, '""')}"`
+      ]);
+
+      const csvText = [
+        `"U.C.A.R.E. REPORT: ${reportType.toUpperCase()}"`,
+        `"Date Range: ${fromDate} to ${toDate}"`,
+        `"Generated On: ${new Date().toLocaleString()}"`,
+        '',
+        fileHeader.join(','),
+        ...fileRows.map(row => row.join(','))
+      ].join('\r\n');
+
+      // CRITICAL FIX: Add \uFEFF UTF-8 Byte Order Mark to prevent file corruption in MS Excel!
+      const bomCsvContent = '\uFEFF' + csvText;
+      const isExcel = exportFormat.includes('Excel');
+      const fileExt = isExcel ? 'csv' : 'csv'; // Valid CSV that MS Excel opens natively without format errors
+      const blob = new Blob([bomCsvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ucare_${sanitizeName}_${fromDate}_to_${toDate}.${fileExt}`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setIsExporting(false);
+    }, 400);
+  };
 
   return (
     <div className="main-content">
@@ -51,14 +176,14 @@ export default function GenerateReportsPage() {
       <div className="dashboard-header">
         <div className="dashboard-header-text">
           <h1>Generate reports</h1>
-          <p>Export financial summaries, assistance disbursements, and audit logs</p>
+          <p>Export financial summaries, paid & remitted contributions, assistance disbursements, and audit logs</p>
         </div>
       </div>
 
       {/* Report Controls Card */}
       <div className="report-controls-card">
         <div className="report-controls-grid">
-          {/* Report Type Selector */}
+          {/* Report Category Type Selector */}
           <div className="form-group">
             <label>Report Category Type</label>
             <select 
@@ -66,10 +191,26 @@ export default function GenerateReportsPage() {
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
             >
+              <option value="Paid & Remitted Member Contributions">Paid & Remitted Member Contributions</option>
+              <option value="Outstanding / Unremitted Dues Summary">Outstanding / Unremitted Dues Summary</option>
               <option value="Summary of financial contributions">Summary of financial contributions</option>
               <option value="Assistance disbursement report">Assistance disbursement report</option>
               <option value="Audit-ready transaction report">Audit-ready transaction report</option>
               <option value="Member contribution report">Member contribution report</option>
+            </select>
+          </div>
+
+          {/* Export File Format Selector */}
+          <div className="form-group">
+            <label>Export File Format</label>
+            <select 
+              className="form-select"
+              value={exportFormat}
+              onChange={(e) => setExportFormat(e.target.value)}
+            >
+              <option value="CSV (.csv)">CSV (.csv)</option>
+              <option value="Excel (.xlsx)">Excel Spreadsheet (.csv / .xlsx)</option>
+              <option value="PDF (.pdf)">PDF Printable Document (.pdf)</option>
             </select>
           </div>
 
@@ -95,30 +236,30 @@ export default function GenerateReportsPage() {
             />
           </div>
 
-          {/* Export Button */}
+          {/* Export Action Button */}
           <button 
             className="btn-primary" 
             onClick={handleExport}
             disabled={isExporting}
-            style={{ height: '42px' }}
+            style={{ height: '42px', gridColumn: 'span 4', justifyContent: 'center', marginTop: '6px' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            {isExporting ? 'Generating...' : 'Export Report'}
+            {isExporting ? 'Generating Report...' : `Export Report (${exportFormat})`}
           </button>
         </div>
       </div>
 
-      {/* Report Preview Card */}
+      {/* Report Output Preview Card */}
       <div className="recent-activity-panel">
         <div className="panel-header">
           <div>
             <h2>Report Output Preview</h2>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Showing sample data for <strong>"{reportType}"</strong> ({fromDate} to {toDate})
+              Showing records for <strong>"{reportType}"</strong> ({fromDate} to {toDate})
             </div>
           </div>
         </div>
@@ -127,28 +268,9 @@ export default function GenerateReportsPage() {
           <table className="data-table">
             <thead>
               <tr>
-                {reportType === 'Audit-ready transaction report' ? (
-                  <>
-                    <th>Reference #</th>
-                    <th>Member</th>
-                    <th>Date Logged</th>
-                    <th>Amount</th>
-                  </>
-                ) : reportType === 'Assistance disbursement report' ? (
-                  <>
-                    <th>Member</th>
-                    <th>Assistance Category</th>
-                    <th>Disbursement Status</th>
-                    <th>Total Amount</th>
-                  </>
-                ) : (
-                  <>
-                    <th>Faculty Member</th>
-                    <th>Category / Dept</th>
-                    <th>Record Count / Status</th>
-                    <th>Running Total</th>
-                  </>
-                )}
+                {getTableHeaders().map((h, i) => (
+                  <th key={i}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -156,7 +278,15 @@ export default function GenerateReportsPage() {
                 <tr key={idx}>
                   <td><strong style={{ color: 'var(--text-main)' }}>{row.col1}</strong></td>
                   <td>{row.col2}</td>
-                  <td>{row.col3}</td>
+                  <td>
+                    {row.col3.includes('Remitted') ? (
+                      <span className="status-tag approved">{row.col3}</span>
+                    ) : row.col3.includes('Unremitted') ? (
+                      <span className="status-tag pending">{row.col3}</span>
+                    ) : (
+                      row.col3
+                    )}
+                  </td>
                   <td><span className="amount-text">{row.col4}</span></td>
                 </tr>
               ))}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function StatCard({ 
   headerTitle, 
@@ -8,75 +8,176 @@ export default function StatCard({
   trendPositive = true,
   chartType = 'bar',
   isMainFocus = false,
-  data = [120, 145, 130, 175, 210, 245] // Future backend ready dynamic data array
+  data = [110000, 135000, 120000, 155000, 165000, 145800], // Dynamic backend ready data
+  labels = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'], // Dynamic month labels
+  currencySymbol = '₱ '
 }) {
-  // Rich Maroon & Emerald Green color styling for metric icons
-  const iconStyle = chartType === 'area' 
-    ? { bg: '#FDF2F5', iconColor: '#8B1E3F', border: '#F8D7E0' } // Rich Maroon Primary Accent
-    : { bg: '#E8F6EF', iconColor: '#2E8B57', border: '#C1E6D0' }; // Emerald Green Secondary Accent
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
-  // Helper for dynamic SVG Area Curve generation based on data prop
+  // Icon styling mapping
+  const iconStyle = chartType === 'area' 
+    ? { bg: '#FDF2F5', iconColor: '#8B1E3F', border: '#F8D7E0' }
+    : { bg: '#E8F6EF', iconColor: '#2E8B57', border: '#C1E6D0' };
+
+  // Format numbers cleanly
+  const formatVal = (val) => `${currencySymbol}${val.toLocaleString('en-US')}`;
+
+  // Area Curve Renderer with Tooltip & Labels
   const renderAreaChart = () => {
     const maxVal = Math.max(...data, 1);
-    const width = 300;
-    const height = 80;
+    const width = 320;
+    const height = 90;
+    const padding = 12;
+
     const points = data.map((val, idx) => {
-      const x = (idx / (data.length - 1)) * width;
-      const y = height - (val / maxVal) * (height - 15);
-      return `${x},${y}`;
+      const x = padding + (idx / (data.length - 1)) * (width - padding * 2);
+      const y = height - 20 - (val / maxVal) * (height - 35);
+      return { x, y, val, label: labels[idx] || `Pt ${idx + 1}` };
     });
 
-    const dPath = `M 0,${height} L ${points.join(' L ')} L ${width},${height} Z`;
-    const strokePath = `M ${points.join(' L ')}`;
+    const dPath = `M ${points[0].x},${height - 20} L ${points.map(p => `${p.x},${p.y}`).join(' L ')} L ${points[points.length - 1].x},${height - 20} Z`;
+    const strokePath = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
 
     return (
-      <svg className="chart-svg-mock" viewBox={`0 0 ${width} ${height}`} fill="none" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="dynamicAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#8B1E3F" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#8B1E3F" stopOpacity="0.0" />
-          </linearGradient>
-        </defs>
-        <path d={dPath} fill="url(#dynamicAreaGrad)" />
-        <path d={strokePath} fill="none" stroke="#8B1E3F" strokeWidth="2.5" />
-        {data.map((val, idx) => {
-          const x = (idx / (data.length - 1)) * width;
-          const y = height - (val / maxVal) * (height - 15);
-          return (
-            <circle key={idx} cx={x} cy={y} r="3.5" fill="#8B1E3F" />
-          );
-        })}
-      </svg>
+      <div style={{ position: 'relative', width: '100%' }}>
+        <svg className="chart-svg-mock" viewBox={`0 0 ${width} ${height}`} fill="none">
+          <defs>
+            <linearGradient id="areaGradInteractive" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8B1E3F" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#8B1E3F" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Gridline */}
+          <line x1="0" y1={height - 20} x2={width} y2={height - 20} stroke="#E2E8F0" strokeDasharray="3 3" />
+
+          {/* Area Fill & Curve Line */}
+          <path d={dPath} fill="url(#areaGradInteractive)" />
+          <path d={strokePath} fill="none" stroke="#8B1E3F" strokeWidth="2.5" />
+
+          {/* Points & Interactive Tooltip Triggers */}
+          {points.map((pt, idx) => (
+            <g key={idx} onMouseEnter={() => setHoveredIndex(idx)} onMouseLeave={() => setHoveredIndex(null)}>
+              <circle
+                cx={pt.x}
+                cy={pt.y}
+                r={hoveredIndex === idx ? "5" : "3.5"}
+                fill={hoveredIndex === idx ? "#6E1731" : "#8B1E3F"}
+                stroke="#FFFFFF"
+                strokeWidth="1.5"
+                style={{ cursor: 'pointer', transition: 'r 0.15s ease' }}
+              />
+              {/* X Axis Labels */}
+              <text
+                x={pt.x}
+                y={height - 4}
+                textAnchor="middle"
+                fontSize="9"
+                fill="#64748B"
+                fontWeight="600"
+              >
+                {pt.label}
+              </text>
+            </g>
+          ))}
+        </svg>
+
+        {/* Hover Tooltip Overlay */}
+        {hoveredIndex !== null && (
+          <div style={{
+            position: 'absolute',
+            top: '4px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#1E293B',
+            color: '#FFFFFF',
+            fontSize: '0.72rem',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            pointerEvents: 'none',
+            zIndex: 10
+          }}>
+            <strong>{labels[hoveredIndex]}:</strong> {formatVal(data[hoveredIndex])}
+          </div>
+        )}
+      </div>
     );
   };
 
-  // Helper for dynamic SVG Bar Chart generation based on data prop
+  // Bar Chart Renderer with Tooltip & Labels
   const renderBarChart = () => {
     const maxVal = Math.max(...data, 1);
-    const barWidth = 18;
-    const gap = 12;
-    const height = 80;
+    const height = 90;
+    const barWidth = 22;
+    const gap = 16;
+    const startX = 14;
 
     return (
-      <svg className="chart-svg-mock" viewBox="0 0 200 80" fill="none">
-        {data.map((val, idx) => {
-          const barHeight = Math.max(10, (val / maxVal) * 65);
-          const x = 12 + idx * (barWidth + gap);
-          const y = height - barHeight;
-          const isHighest = val === maxVal;
-          return (
-            <rect
-              key={idx}
-              x={x}
-              y={y}
-              width={barWidth}
-              height={barHeight}
-              rx="3"
-              fill={isHighest ? '#2E8B57' : '#C1E6D0'}
-            />
-          );
-        })}
-      </svg>
+      <div style={{ position: 'relative', width: '100%' }}>
+        <svg className="chart-svg-mock" viewBox="0 0 240 90" fill="none">
+          {/* Baseline Gridline */}
+          <line x1="0" y1={height - 20} x2="240" y2={height - 20} stroke="#E2E8F0" strokeDasharray="3 3" />
+
+          {data.map((val, idx) => {
+            const barHeight = Math.max(12, (val / maxVal) * (height - 35));
+            const x = startX + idx * (barWidth + gap);
+            const y = height - 20 - barHeight;
+            const isHovered = hoveredIndex === idx;
+            const isHighest = val === maxVal;
+
+            return (
+              <g 
+                key={idx} 
+                onMouseEnter={() => setHoveredIndex(idx)} 
+                onMouseLeave={() => setHoveredIndex(null)}
+                style={{ cursor: 'pointer' }}
+              >
+                <rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={barHeight}
+                  rx="4"
+                  fill={isHovered ? '#1B5E20' : isHighest ? '#2E8B57' : '#C1E6D0'}
+                  style={{ transition: 'all 0.15s ease' }}
+                />
+                {/* X Axis Labels */}
+                <text
+                  x={x + barWidth / 2}
+                  y={height - 4}
+                  textAnchor="middle"
+                  fontSize="9"
+                  fill="#64748B"
+                  fontWeight="600"
+                >
+                  {labels[idx] || `M${idx + 1}`}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Hover Tooltip Overlay */}
+        {hoveredIndex !== null && (
+          <div style={{
+            position: 'absolute',
+            top: '4px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#1E293B',
+            color: '#FFFFFF',
+            fontSize: '0.72rem',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            pointerEvents: 'none',
+            zIndex: 10
+          }}>
+            <strong>{labels[hoveredIndex]}:</strong> {formatVal(data[hoveredIndex])}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -119,7 +220,7 @@ export default function StatCard({
       <div className="card-value">{value}</div>
       {subtitle && <div className="card-subtitle">{subtitle}</div>}
 
-      {/* Backend Ready Reactive Chart Rendering */}
+      {/* Backend Ready Dynamic SVG Chart with Interactive Tooltips */}
       <div className="chart-placeholder">
         {chartType === 'area' ? renderAreaChart() : renderBarChart()}
         <span className="chart-watermark">
