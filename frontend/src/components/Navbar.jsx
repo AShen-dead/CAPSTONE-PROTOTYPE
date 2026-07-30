@@ -1,13 +1,19 @@
 import React from 'react';
 
-export default function Navbar() {
+export default function Navbar({ logoUrl }) {
   return (
     <header className="top-navbar">
-      {/* Left: Brand Logo & Title */}
+      {/* Left: Brand Logo & Title with Changeable Logo Picture */}
       <div className="nav-brand">
-        <div className="brand-logo-badge">
-          U.C.A.R.E.
-        </div>
+        {logoUrl ? (
+          <div className="brand-logo-container">
+            <img src={logoUrl} alt="U.C.A.R.E. Logo" className="brand-logo-img" />
+          </div>
+        ) : (
+          <div className="brand-logo-badge">
+            U.C.A.R.E.
+          </div>
+        )}
         <div className="brand-info">
           <span className="brand-title">ISPSC Tagudin Federated Faculty Union</span>
           <span className="brand-subtitle">Compensation & Assistance Records Engine</span>

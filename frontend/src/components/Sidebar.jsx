@@ -92,7 +92,7 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab }) {
       </nav>
 
       <div className="sidebar-footer">
-        <div>U.C.A.R.E. v1.0 Prototype</div>
+        <div>U.C.A.R.E. Portal v1.0</div>
         <div style={{ fontSize: '0.68rem', marginTop: '2px' }}>ISPSC Tagudin Campus</div>
       </div>
     </aside>

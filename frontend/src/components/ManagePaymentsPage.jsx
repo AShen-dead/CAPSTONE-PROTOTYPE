@@ -123,7 +123,7 @@ export default function ManagePaymentsPage() {
           <p>Record union dues, verify transactions, and monitor payment status</p>
         </div>
 
-        {/* Top-Right Action Button */}
+        {/* Clean Top-Right Action Button (No Duplicate +) */}
         <button 
           className="btn-primary"
           onClick={() => setShowRecordModal(true)}
@@ -132,7 +132,7 @@ export default function ManagePaymentsPage() {
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          + Record payment
+          Record Payment
         </button>
       </div>
 
@@ -227,7 +227,7 @@ export default function ManagePaymentsPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>+ Record New Payment</h3>
+              <h3>Record New Payment</h3>
               <button className="btn-close-modal" onClick={() => setShowRecordModal(false)}>✕</button>
             </div>
 

@@ -7,12 +7,78 @@ export default function StatCard({
   trendText, 
   trendPositive = true,
   chartType = 'bar',
-  isMainFocus = false
+  isMainFocus = false,
+  data = [120, 145, 130, 175, 210, 245] // Future backend ready dynamic data array
 }) {
-  // Pastel SaaS icon container background & icon color mapping
+  // Rich Maroon & Emerald Green color styling for metric icons
   const iconStyle = chartType === 'area' 
-    ? { bg: '#E8F5E9', iconColor: '#2E7D32', border: '#C8E6C9' } // Forest Green Accent
-    : { bg: '#E0F2FE', iconColor: '#0284C7', border: '#BAE6FD' }; // Sky Blue Accent
+    ? { bg: '#FDF2F5', iconColor: '#8B1E3F', border: '#F8D7E0' } // Rich Maroon Primary Accent
+    : { bg: '#E8F6EF', iconColor: '#2E8B57', border: '#C1E6D0' }; // Emerald Green Secondary Accent
+
+  // Helper for dynamic SVG Area Curve generation based on data prop
+  const renderAreaChart = () => {
+    const maxVal = Math.max(...data, 1);
+    const width = 300;
+    const height = 80;
+    const points = data.map((val, idx) => {
+      const x = (idx / (data.length - 1)) * width;
+      const y = height - (val / maxVal) * (height - 15);
+      return `${x},${y}`;
+    });
+
+    const dPath = `M 0,${height} L ${points.join(' L ')} L ${width},${height} Z`;
+    const strokePath = `M ${points.join(' L ')}`;
+
+    return (
+      <svg className="chart-svg-mock" viewBox={`0 0 ${width} ${height}`} fill="none" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="dynamicAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#8B1E3F" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#8B1E3F" stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
+        <path d={dPath} fill="url(#dynamicAreaGrad)" />
+        <path d={strokePath} fill="none" stroke="#8B1E3F" strokeWidth="2.5" />
+        {data.map((val, idx) => {
+          const x = (idx / (data.length - 1)) * width;
+          const y = height - (val / maxVal) * (height - 15);
+          return (
+            <circle key={idx} cx={x} cy={y} r="3.5" fill="#8B1E3F" />
+          );
+        })}
+      </svg>
+    );
+  };
+
+  // Helper for dynamic SVG Bar Chart generation based on data prop
+  const renderBarChart = () => {
+    const maxVal = Math.max(...data, 1);
+    const barWidth = 18;
+    const gap = 12;
+    const height = 80;
+
+    return (
+      <svg className="chart-svg-mock" viewBox="0 0 200 80" fill="none">
+        {data.map((val, idx) => {
+          const barHeight = Math.max(10, (val / maxVal) * 65);
+          const x = 12 + idx * (barWidth + gap);
+          const y = height - barHeight;
+          const isHighest = val === maxVal;
+          return (
+            <rect
+              key={idx}
+              x={x}
+              y={y}
+              width={barWidth}
+              height={barHeight}
+              rx="3"
+              fill={isHighest ? '#2E8B57' : '#C1E6D0'}
+            />
+          );
+        })}
+      </svg>
+    );
+  };
 
   return (
     <div className={`dashboard-card ${isMainFocus ? 'main-focus-card' : ''}`}>
@@ -53,40 +119,9 @@ export default function StatCard({
       <div className="card-value">{value}</div>
       {subtitle && <div className="card-subtitle">{subtitle}</div>}
 
-      {/* Metric SVG visual */}
+      {/* Backend Ready Reactive Chart Rendering */}
       <div className="chart-placeholder">
-        {chartType === 'area' ? (
-          <svg className="chart-svg-mock" viewBox="0 0 300 90" fill="none" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2E7D32" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#2E7D32" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            <path 
-              d="M 0 75 Q 45 35 90 55 T 180 25 T 270 40 T 300 20 L 300 90 L 0 90 Z" 
-              fill="url(#areaGradient)" 
-            />
-            <path 
-              d="M 0 75 Q 45 35 90 55 T 180 25 T 270 40 T 300 20" 
-              fill="none" 
-              stroke="#2E7D32" 
-              strokeWidth="2.5" 
-            />
-            <circle cx="90" cy="55" r="4" fill="#2E7D32" />
-            <circle cx="180" cy="25" r="4" fill="#2E7D32" />
-            <circle cx="270" cy="40" r="4" fill="#2E7D32" />
-          </svg>
-        ) : (
-          <svg className="chart-svg-mock" viewBox="0 0 200 90" fill="none">
-            <rect x="15" y="45" width="18" height="40" rx="3" fill="#BAE6FD" />
-            <rect x="45" y="30" width="18" height="55" rx="3" fill="#38BDF8" />
-            <rect x="75" y="55" width="18" height="30" rx="3" fill="#BAE6FD" />
-            <rect x="105" y="20" width="18" height="65" rx="3" fill="#0284C7" />
-            <rect x="135" y="35" width="18" height="50" rx="3" fill="#BAE6FD" />
-            <rect x="165" y="10" width="18" height="75" rx="3" fill="#0369A1" />
-          </svg>
-        )}
+        {chartType === 'area' ? renderAreaChart() : renderBarChart()}
         <span className="chart-watermark">
           {chartType === 'area' ? 'Monthly Activity Trend' : 'Cumulative Growth Analytics'}
         </span>

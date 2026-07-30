@@ -74,7 +74,7 @@ export default function ManageMembersPage() {
           <p>ISPSC Tagudin Federated Faculty Union Member Directory & Running Totals</p>
         </div>
 
-        {/* Top-Right Action Button */}
+        {/* Clean Top-Right Action Button (No Duplicate +) */}
         <button 
           className="btn-primary"
           onClick={() => setShowAddModal(true)}
@@ -83,7 +83,7 @@ export default function ManageMembersPage() {
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          + Add member
+          Add Member
         </button>
       </div>
 
@@ -200,7 +200,7 @@ export default function ManageMembersPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>+ Add New Faculty Member</h3>
+              <h3>Add New Faculty Member</h3>
               <button 
                 className="btn-close-modal"
                 onClick={() => setShowAddModal(false)}
