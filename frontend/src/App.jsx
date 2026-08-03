@@ -14,6 +14,21 @@ import './App.css';
 function App() {
   const [activeTab, setActiveTab] = useState('Home');
 
+  // Dynamic Navbar Configuration State (Ready for future Laravel backend auth & settings API)
+  const [navbarConfig, setNavbarConfig] = useState({
+    logoUrl: null, // Set image URL when dynamic logo picture is uploaded
+    systemTitle: "ISPSC Tagudin Federated Faculty Union",
+    systemSubtitle: "Compensation & Assistance Records Engine",
+    userName: "Sec. Administrator",
+    userRole: "Faculty Union Admin",
+    roleBadge: "SYSTEM ADMIN"
+  });
+
+  // Dynamic Home Page Charts Data Arrays (Ready for future backend API payload)
+  const totalContributionsData = [1100000, 1220000, 1290000, 1380000, 1420000, 1482500];
+  const monthlyContributionsData = [115000, 132000, 120000, 150000, 135000, 145800];
+  const chartLabels = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+
   const renderMainContent = () => {
     switch (activeTab) {
       case 'Manage Members':
@@ -47,6 +62,8 @@ function App() {
                 trendText="12.4% vs last year"
                 trendPositive={true}
                 chartType="bar"
+                data={totalContributionsData}
+                labels={chartLabels}
               />
 
               {/* Panel 2: Contribution This Month (Main Focus Panel) */}
@@ -58,6 +75,8 @@ function App() {
                 trendPositive={true}
                 chartType="area"
                 isMainFocus={true}
+                data={monthlyContributionsData}
+                labels={chartLabels}
               />
 
               {/* Panel 3: Pending Benefit */}
@@ -73,8 +92,8 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Top Bar */}
-      <Navbar />
+      {/* Dynamic Top Bar Navbar */}
+      <Navbar {...navbarConfig} />
 
       <div className="app-body">
         {/* Left Sidebar Navigation */}

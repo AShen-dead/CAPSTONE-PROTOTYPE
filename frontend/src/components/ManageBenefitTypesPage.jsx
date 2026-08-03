@@ -86,7 +86,7 @@ export default function ManageBenefitTypesPage() {
           <p>Configure faculty compensation, assistance categories, and policy guidelines</p>
         </div>
 
-        {/* Top-Right Action Button */}
+        {/* Clean Top-Right Action Button (No Duplicate +) */}
         <button 
           className="btn-primary"
           onClick={() => setShowAddModal(true)}
@@ -95,7 +95,7 @@ export default function ManageBenefitTypesPage() {
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          + Add benefit type
+          Add Benefit Type
         </button>
       </div>
 
@@ -153,7 +153,7 @@ export default function ManageBenefitTypesPage() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>+ Add New Benefit Type</h3>
+              <h3>Add New Benefit Type</h3>
               <button className="btn-close-modal" onClick={() => setShowAddModal(false)}>✕</button>
             </div>
 
