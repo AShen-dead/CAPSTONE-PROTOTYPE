@@ -13,7 +13,10 @@ return new class extends Migration
     {
         Schema::create('benefit_types', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->string('benefit_name');
+            $table->text('description')->nullable();
+            $table->decimal('maximum_amount', 10, 2)->nullable();
+            $table->string('status')->default('Active');
         });
     }
 

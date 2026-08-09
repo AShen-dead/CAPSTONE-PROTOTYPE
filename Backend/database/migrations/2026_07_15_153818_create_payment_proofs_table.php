@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('payment_proofs', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->foreignId('payment_id')->constrained('payments')->cascadeOnDelete();
+            $table->string('proof_image');
+            $table->timestamp('uploaded_at')->useCurrent();
         });
     }
 

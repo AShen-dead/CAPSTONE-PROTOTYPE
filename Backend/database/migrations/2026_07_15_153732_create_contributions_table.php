@@ -13,7 +13,11 @@ return new class extends Migration
     {
         Schema::create('contributions', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->foreignId('faculty_id')->constrained('faculty_members')->cascadeOnDelete();
+            $table->date('contribution_month');
+            $table->decimal('amount', 10, 2);
+            $table->string('status')->default('Unpaid');
+            $table->text('remarks')->nullable();
         });
     }
 

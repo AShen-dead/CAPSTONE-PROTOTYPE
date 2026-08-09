@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('benefit_documents', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
+            $table->foreignId('request_id')->constrained('benefit_requests')->cascadeOnDelete();
+            $table->string('document_path');
+            $table->timestamp('uploaded_at')->useCurrent();
         });
     }
 
