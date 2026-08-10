@@ -9,20 +9,51 @@ import ManagePaymentsPage from './components/ManagePaymentsPage';
 import ManageBenefitTypesPage from './components/ManageBenefitTypesPage';
 import ApproveBenefitRequestsPage from './components/ApproveBenefitRequestsPage';
 import GenerateReportsPage from './components/GenerateReportsPage';
+import LoginPage from './components/LoginPage';
+import { getToken, getUser, clearAuth, logout } from './api';
 import './App.css';
 
 function App() {
+  // ── Auth state (persisted in localStorage) ─────────────────
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getToken());
+  const [currentUser, setCurrentUser] = useState(() => getUser());
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (_) {
+      // If server is unreachable, still clear local auth
+    } finally {
+      clearAuth();
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setActiveTab('Home');
+    }
+  };
+
+  // ── Show Login if not authenticated ────────────────────────
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // ── Dashboard ───────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('Home');
 
-  // Dynamic Navbar Configuration State (Ready for future Laravel backend auth & settings API)
-  const [navbarConfig, setNavbarConfig] = useState({
-    logoUrl: null, // Set image URL when dynamic logo picture is uploaded
+  // Dynamic Navbar Configuration (driven by logged-in user)
+  const navbarConfig = {
+    logoUrl: null,
     systemTitle: "ISPSC Tagudin Federated Faculty Union",
     systemSubtitle: "Compensation & Assistance Records Engine",
-    userName: "Sec. Administrator",
-    userRole: "Faculty Union Admin",
-    roleBadge: "SYSTEM ADMIN"
-  });
+    userName: currentUser?.name ?? "User",
+    userRole: currentUser?.role === 'admin' ? 'Faculty Union Admin' : 'Faculty Member',
+    roleBadge: currentUser?.role === 'admin' ? 'SYSTEM ADMIN' : 'FACULTY',
+    onLogout: handleLogout,
+  };
 
   // Dynamic Home Page Charts Data Arrays (Ready for future backend API payload)
   const totalContributionsData = [1100000, 1220000, 1290000, 1380000, 1420000, 1482500];

@@ -84,6 +84,30 @@
   gap: 18px;
 }
 
+/* Logout button in the navbar */
+.nav-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nav-logout-btn:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+  color: #B91C1C;
+}
+
+
 .system-admin-badge {
   background-color: var(--badge-admin-bg);
   color: var(--badge-admin-text);
