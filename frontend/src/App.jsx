@@ -14,13 +14,16 @@ import { getToken, getUser, clearAuth, logout } from './api';
 import './App.css';
 
 function App() {
-  // ── Auth state (persisted in localStorage) ─────────────────
+  // ── ALL hooks must be at the top — no hooks after conditional returns ──
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getToken());
-  const [currentUser, setCurrentUser] = useState(() => getUser());
+  const [currentUser, setCurrentUser]         = useState(() => getUser());
+  const [activeTab, setActiveTab]             = useState('Home');
 
+  // ── Auth handlers ──────────────────────────────────────────────────────
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
+    setActiveTab('Home'); // Always land on the dashboard after login
   };
 
   const handleLogout = async () => {
@@ -36,27 +39,24 @@ function App() {
     }
   };
 
-  // ── Show Login if not authenticated ────────────────────────
+  // ── Show Login page when not authenticated ─────────────────────────────
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // ── Dashboard ───────────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState('Home');
+  // ── Dashboard (admin and faculty) ──────────────────────────────────────
 
-  // Dynamic Navbar Configuration (driven by logged-in user)
   const navbarConfig = {
-    logoUrl: null,
-    systemTitle: "ISPSC Tagudin Federated Faculty Union",
-    systemSubtitle: "Compensation & Assistance Records Engine",
-    userName: currentUser?.name ?? "User",
-    userRole: currentUser?.role === 'admin' ? 'Faculty Union Admin' : 'Faculty Member',
-    roleBadge: currentUser?.role === 'admin' ? 'SYSTEM ADMIN' : 'FACULTY',
-    onLogout: handleLogout,
+    logoUrl:       null,
+    systemTitle:   'ISPSC Tagudin Federated Faculty Union',
+    systemSubtitle:'Compensation & Assistance Records Engine',
+    userName:      currentUser?.name   ?? 'User',
+    userRole:      currentUser?.role === 'admin' ? 'Faculty Union Admin' : 'Faculty Member',
+    roleBadge:     currentUser?.role === 'admin' ? 'SYSTEM ADMIN'        : 'FACULTY',
+    onLogout:      handleLogout,
   };
 
-  // Dynamic Home Page Charts Data Arrays (Ready for future backend API payload)
-  const totalContributionsData = [1100000, 1220000, 1290000, 1380000, 1420000, 1482500];
+  const totalContributionsData  = [1100000, 1220000, 1290000, 1380000, 1420000, 1482500];
   const monthlyContributionsData = [115000, 132000, 120000, 150000, 135000, 145800];
   const chartLabels = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
 
@@ -83,9 +83,7 @@ function App() {
               </div>
             </div>
 
-            {/* Top Panels Row (Left to Right) */}
             <div className="top-panels-grid">
-              {/* Panel 1: Total Contributions */}
               <StatCard
                 headerTitle="TOTAL CONTRIBUTIONS"
                 value="₱ 1,482,500.00"
@@ -96,8 +94,6 @@ function App() {
                 data={totalContributionsData}
                 labels={chartLabels}
               />
-
-              {/* Panel 2: Contribution This Month (Main Focus Panel) */}
               <StatCard
                 headerTitle="CONTRIBUTION THIS MONTH"
                 value="₱ 145,800.00"
@@ -109,12 +105,9 @@ function App() {
                 data={monthlyContributionsData}
                 labels={chartLabels}
               />
-
-              {/* Panel 3: Pending Benefit */}
               <PendingBenefitsCard />
             </div>
 
-            {/* Bottom Panel: Recent Payment Activity */}
             <RecentPaymentsTable />
           </main>
         );
@@ -123,14 +116,9 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Dynamic Top Bar Navbar */}
       <Navbar {...navbarConfig} />
-
       <div className="app-body">
-        {/* Left Sidebar Navigation */}
         <Sidebar activeItem={activeTab} onSelectTab={setActiveTab} />
-
-        {/* Main Content Area */}
         {renderMainContent()}
       </div>
     </div>
