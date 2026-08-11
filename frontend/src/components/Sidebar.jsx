@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Sidebar({ activeItem = 'Home', onSelectTab }) {
+export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = false, onClose }) {
   const navItems = [
     {
       id: 'Home',
@@ -67,34 +67,58 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab }) {
     }
   ];
 
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-section-title">Navigation</div>
-      <nav className="sidebar-nav">
-        {navItems.map((item) => {
-          const isActive = activeItem === item.id;
-          return (
-            <a
-              key={item.id}
-              href={`#${item.id.toLowerCase().replace(/\s+/g, '-')}`}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                if (onSelectTab) onSelectTab(item.id);
-              }}
-            >
-              <span className="nav-item-icon">{item.icon}</span>
-              <span>{item.label}</span>
-              {item.badge && <span className="nav-item-badge">{item.badge}</span>}
-            </a>
-          );
-        })}
-      </nav>
+  const handleNavClick = (id) => {
+    if (onSelectTab) onSelectTab(id);
+    if (onClose) onClose(); // auto-close sidebar on mobile after selecting
+  };
 
-      <div className="sidebar-footer">
-        <div>U.C.A.R.E. Portal v1.0</div>
-        <div style={{ fontSize: '0.68rem', marginTop: '2px' }}>ISPSC Tagudin Campus</div>
-      </div>
-    </aside>
+  return (
+    <>
+      {/* Backdrop — only visible on mobile when sidebar is open */}
+      {isOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={onClose}
+          aria-label="Close navigation"
+        />
+      )}
+
+      <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
+        {/* Mobile close button */}
+        <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        <div className="sidebar-section-title">Navigation</div>
+        <nav className="sidebar-nav">
+          {navItems.map((item) => {
+            const isActive = activeItem === item.id;
+            return (
+              <a
+                key={item.id}
+                href={`#${item.id.toLowerCase().replace(/\s+/g, '-')}`}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleNavClick(item.id);
+                }}
+              >
+                <span className="nav-item-icon">{item.icon}</span>
+                <span>{item.label}</span>
+                {item.badge && <span className="nav-item-badge">{item.badge}</span>}
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div>U.C.A.R.E. Portal v1.0</div>
+          <div style={{ fontSize: '0.68rem', marginTop: '2px' }}>ISPSC Tagudin Campus</div>
+        </div>
+      </aside>
+    </>
   );
 }

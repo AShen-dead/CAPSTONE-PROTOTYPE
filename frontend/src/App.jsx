@@ -18,11 +18,13 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => !!getToken());
   const [currentUser, setCurrentUser]         = useState(() => getUser());
   const [activeTab, setActiveTab]             = useState('Home');
+  const [sidebarOpen, setSidebarOpen]         = useState(false);
 
   // ── Auth handlers ──────────────────────────────────────────────────────
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
+    setSidebarOpen(false);
     setActiveTab('Home'); // Always land on the dashboard after login
   };
 
@@ -35,6 +37,7 @@ function App() {
       clearAuth();
       setIsAuthenticated(false);
       setCurrentUser(null);
+      setSidebarOpen(false);
       setActiveTab('Home');
     }
   };
@@ -47,13 +50,14 @@ function App() {
   // ── Dashboard (admin and faculty) ──────────────────────────────────────
 
   const navbarConfig = {
-    logoUrl:       null,
-    systemTitle:   'ISPSC Tagudin Federated Faculty Union',
-    systemSubtitle:'Compensation & Assistance Records Engine',
-    userName:      currentUser?.name   ?? 'User',
-    userRole:      currentUser?.role === 'admin' ? 'Faculty Union Admin' : 'Faculty Member',
-    roleBadge:     currentUser?.role === 'admin' ? 'SYSTEM ADMIN'        : 'FACULTY',
-    onLogout:      handleLogout,
+    logoUrl:        null,
+    systemTitle:    'ISPSC Tagudin Federated Faculty Union',
+    systemSubtitle: 'Compensation & Assistance Records Engine',
+    userName:       currentUser?.name ?? 'User',
+    userRole:       currentUser?.role === 'admin' ? 'Faculty Union Admin' : 'Faculty Member',
+    roleBadge:      currentUser?.role === 'admin' ? 'SYSTEM ADMIN' : 'FACULTY',
+    onLogout:       handleLogout,
+    onMenuToggle:   () => setSidebarOpen((v) => !v),
   };
 
   const totalContributionsData  = [1100000, 1220000, 1290000, 1380000, 1420000, 1482500];
@@ -118,7 +122,12 @@ function App() {
     <div className="app-container">
       <Navbar {...navbarConfig} />
       <div className="app-body">
-        <Sidebar activeItem={activeTab} onSelectTab={setActiveTab} />
+        <Sidebar
+          activeItem={activeTab}
+          onSelectTab={setActiveTab}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
         {renderMainContent()}
       </div>
     </div>

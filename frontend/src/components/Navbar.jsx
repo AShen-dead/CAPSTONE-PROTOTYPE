@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function Navbar({
   logoUrl,
@@ -8,10 +8,20 @@ export default function Navbar({
   userRole = "Faculty Union Admin",
   roleBadge = "SYSTEM ADMIN",
   onLogout,
+  onMenuToggle,
 }) {
   return (
     <header className="top-navbar">
-      {/* Left: Brand Logo & Title with Changeable Logo Picture */}
+      {/* Hamburger — visible only on mobile */}
+      <button
+        className="nav-hamburger"
+        onClick={onMenuToggle}
+        aria-label="Toggle navigation menu"
+      >
+        <span /><span /><span />
+      </button>
+
+      {/* Left: Brand Logo & Title */}
       <div className="nav-brand">
         {logoUrl ? (
           <div className="brand-logo-container">
@@ -32,9 +42,9 @@ export default function Navbar({
       <div className="nav-user">
         <div className="system-admin-badge">
           <span className="indicator-dot"></span>
-          {roleBadge}
+          <span className="badge-label">{roleBadge}</span>
         </div>
-        
+
         <div className="user-profile-summary">
           <div className="avatar-circle">
             {userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
@@ -45,7 +55,6 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Logout Button */}
         {onLogout && (
           <button
             className="nav-logout-btn"
@@ -58,7 +67,7 @@ export default function Navbar({
               <polyline points="16 17 21 12 16 7"/>
               <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
-            <span>Sign Out</span>
+            <span className="logout-label">Sign Out</span>
           </button>
         )}
       </div>
