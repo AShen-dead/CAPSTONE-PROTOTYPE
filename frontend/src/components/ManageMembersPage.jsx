@@ -209,7 +209,7 @@ export default function ManageMembersPage() {
               </button>
             </div>
 
-            <form onSubmit={handleAddMember} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleAddMember} className="modal-body-form">
               <div className="form-group">
                 <label>Full Name</label>
                 <input 

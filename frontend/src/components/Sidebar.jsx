@@ -1,7 +1,7 @@
 import React from 'react';
 
-export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = false, onClose }) {
-  const navItems = [
+export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = false, onClose, customItems }) {
+  const defaultItems = [
     {
       id: 'Home',
       label: 'Home',
@@ -67,14 +67,15 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = fal
     }
   ];
 
+  const navItems = customItems || defaultItems;
+
   const handleNavClick = (id) => {
     if (onSelectTab) onSelectTab(id);
-    if (onClose) onClose(); // auto-close sidebar on mobile after selecting
+    if (onClose) onClose();
   };
 
   return (
     <>
-      {/* Backdrop — only visible on mobile when sidebar is open */}
       {isOpen && (
         <div
           className="sidebar-backdrop"
@@ -84,14 +85,6 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = fal
       )}
 
       <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
-        {/* Mobile close button */}
-        <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-
         <div className="sidebar-section-title">Navigation</div>
         <nav className="sidebar-nav">
           {navItems.map((item) => {

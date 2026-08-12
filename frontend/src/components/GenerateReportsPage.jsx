@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 export default function GenerateReportsPage() {
   const [reportType, setReportType] = useState('Paid & Remitted Member Contributions');
-  const [exportFormat, setExportFormat] = useState('CSV (.csv)'); // CSV, Excel, PDF
+  const [exportFormat, setExportFormat] = useState('CSV'); // CSV, Excel, PDF
   const [fromDate, setFromDate] = useState('2026-01-01');
   const [toDate, setToDate] = useState('2026-07-28');
   const [isExporting, setIsExporting] = useState(false);
@@ -67,7 +67,7 @@ export default function GenerateReportsPage() {
     return ['Faculty Member', 'Category / Dept', 'Record Count / Status', 'Running Total'];
   };
 
-  // Robust, Bug-Free File Export Handler
+  // File Export Handler
   const handleExport = () => {
     setIsExporting(true);
 
@@ -75,8 +75,8 @@ export default function GenerateReportsPage() {
       const headers = getTableHeaders();
       const sanitizeName = reportType.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
-      // Handling PDF Export via Clean Printable Document View
-      if (exportFormat.includes('PDF')) {
+      // PDF Export
+      if (exportFormat === 'PDF') {
         const printWin = window.open('', '_blank', 'width=900,height=700');
         if (printWin) {
           const htmlContent = `
@@ -133,7 +133,7 @@ export default function GenerateReportsPage() {
         return;
       }
 
-      // Handling CSV & Excel (.csv / .xlsx compatible format with UTF-8 BOM \uFEFF)
+      // CSV & Excel Export
       const fileHeader = headers.map(h => `"${h}"`);
       const fileRows = currentRows.map(r => [
         `"${r.col1.replace(/"/g, '""')}"`,
@@ -151,10 +151,8 @@ export default function GenerateReportsPage() {
         ...fileRows.map(row => row.join(','))
       ].join('\r\n');
 
-      // CRITICAL FIX: Add \uFEFF UTF-8 Byte Order Mark to prevent file corruption in MS Excel!
       const bomCsvContent = '\uFEFF' + csvText;
-      const isExcel = exportFormat.includes('Excel');
-      const fileExt = isExcel ? 'csv' : 'csv'; // Valid CSV that MS Excel opens natively without format errors
+      const fileExt = 'csv';
       const blob = new Blob([bomCsvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       
@@ -182,6 +180,10 @@ export default function GenerateReportsPage() {
 
       {/* Report Controls Card */}
       <div className="report-controls-card">
+        <div style={{ fontSize: '0.82rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary-maroon)', marginBottom: '16px' }}>
+          Report Filter Parameters & Export Format
+        </div>
+
         <div className="report-controls-grid">
           {/* Report Category Type Selector */}
           <div className="form-group">
@@ -208,9 +210,9 @@ export default function GenerateReportsPage() {
               value={exportFormat}
               onChange={(e) => setExportFormat(e.target.value)}
             >
-              <option value="CSV (.csv)">CSV (.csv)</option>
-              <option value="Excel (.xlsx)">Excel Spreadsheet (.csv / .xlsx)</option>
-              <option value="PDF (.pdf)">PDF Printable Document (.pdf)</option>
+              <option value="CSV">CSV (.csv)</option>
+              <option value="Excel">Excel Spreadsheet (.xlsx)</option>
+              <option value="PDF">PDF Document (.pdf)</option>
             </select>
           </div>
 
@@ -235,20 +237,22 @@ export default function GenerateReportsPage() {
               onChange={(e) => setToDate(e.target.value)}
             />
           </div>
+        </div>
 
-          {/* Export Action Button */}
+        {/* Export Button Row */}
+        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
           <button 
             className="btn-primary" 
             onClick={handleExport}
             disabled={isExporting}
-            style={{ height: '42px', gridColumn: 'span 4', justifyContent: 'center', marginTop: '6px' }}
+            style={{ height: '44px', padding: '0 28px' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            {isExporting ? 'Generating Report...' : `Export Report (${exportFormat})`}
+            {isExporting ? 'Generating Report...' : `Export report ${exportFormat}`}
           </button>
         </div>
       </div>

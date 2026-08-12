@@ -157,7 +157,7 @@ export default function ManageBenefitTypesPage() {
               <button className="btn-close-modal" onClick={() => setShowAddModal(false)}>✕</button>
             </div>
 
-            <form onSubmit={handleAddBenefitType} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleAddBenefitType} className="modal-body-form">
               <div className="form-group">
                 <label>Benefit Category Title</label>
                 <input 

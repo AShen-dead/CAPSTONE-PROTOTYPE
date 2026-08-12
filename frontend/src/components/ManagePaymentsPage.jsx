@@ -114,6 +114,9 @@ export default function ManagePaymentsPage() {
     return true;
   });
 
+  const countToVerify = payments.filter(p => p.status === 'To verify').length;
+  const countVerified = payments.filter(p => p.status === 'Verified').length;
+
   return (
     <div className="main-content">
       {/* Page Header */}
@@ -123,7 +126,7 @@ export default function ManagePaymentsPage() {
           <p>Record union dues, verify transactions, and monitor payment status</p>
         </div>
 
-        {/* Clean Top-Right Action Button (No Duplicate +) */}
+        {/* Clean Top-Right Action Button */}
         <button 
           className="btn-primary"
           onClick={() => setShowRecordModal(true)}
@@ -142,19 +145,22 @@ export default function ManagePaymentsPage() {
           className={`filter-tab ${activeFilter === 'All' ? 'active' : ''}`}
           onClick={() => setActiveFilter('All')}
         >
-          All ({payments.length})
+          <span>All</span>
+          <span className="filter-count-badge">({payments.length})</span>
         </button>
         <button 
           className={`filter-tab ${activeFilter === 'To verify' ? 'active' : ''}`}
           onClick={() => setActiveFilter('To verify')}
         >
-          To verify ({payments.filter(p => p.status === 'To verify').length})
+          <span>To verify</span>
+          <span className="filter-count-badge warning">({countToVerify})</span>
         </button>
         <button 
           className={`filter-tab ${activeFilter === 'Verified' ? 'active' : ''}`}
           onClick={() => setActiveFilter('Verified')}
         >
-          Verified ({payments.filter(p => p.status === 'Verified').length})
+          <span>Verified</span>
+          <span className="filter-count-badge success">({countVerified})</span>
         </button>
       </div>
 
@@ -231,7 +237,7 @@ export default function ManagePaymentsPage() {
               <button className="btn-close-modal" onClick={() => setShowRecordModal(false)}>✕</button>
             </div>
 
-            <form onSubmit={handleRecordPayment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleRecordPayment} className="modal-body-form">
               <div className="form-group">
                 <label>Faculty Member Name</label>
                 <input 
