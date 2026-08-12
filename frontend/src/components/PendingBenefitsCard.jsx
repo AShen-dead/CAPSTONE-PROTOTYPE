@@ -1,7 +1,7 @@
 import React from 'react';
 
-export default function PendingBenefitsCard({ mostRecent, recentList }) {
-  const defaultMostRecent = mostRecent || {
+export default function PendingBenefitsCard({ mostRecent, recentList, onNavigate }) {
+  const topItem = mostRecent || {
     benefitType: 'Medical Assistance',
     memberName: 'Prof. Maria Santos',
     dateFiled: 'Jul 26, 2026',
@@ -15,31 +15,50 @@ export default function PendingBenefitsCard({ mostRecent, recentList }) {
     { id: 3, memberName: 'Prof. Elena Ramos', benefitType: 'Educational Aid', status: 'Pending', statusType: 'pending' }
   ];
 
+  const handleCardClick = () => {
+    if (onNavigate) {
+      onNavigate('Approve Benefit Requests');
+    }
+  };
+
   return (
-    <div className="dashboard-card pending-card-container">
+    <div 
+      className="dashboard-card pending-card-container"
+      onClick={handleCardClick}
+      style={{ cursor: 'pointer' }}
+    >
       <div className="card-header-label">
-        <span>PENDING BENEFIT</span>
-        <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: '600' }}>3 Awaiting Action</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B47806" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span>PENDING BENEFIT REVIEWS</span>
+        </div>
+        <span 
+          className="trend-badge" 
+          style={{ backgroundColor: '#FEF8E7', color: '#B47806', border: '1px solid #FCE8B3', cursor: 'pointer' }}
+        >
+          Review Requests &gt;
+        </span>
       </div>
 
-      {/* Highlighted Entry: Most Recent Pending Request */}
+      {/* Featured Highlight Card (View Only) */}
       <div className="pending-benefit-highlight">
         <div className="pending-highlight-top">
           <span className="pending-benefit-type">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-            {defaultMostRecent.benefitType}
+            {topItem.benefitType}
           </span>
-          <span className="status-tag pending">{defaultMostRecent.status}</span>
+          <span className="status-tag pending">
+            {topItem.status}
+          </span>
         </div>
-        
-        <div className="pending-member-name">{defaultMostRecent.memberName}</div>
-        
+
+        <div className="pending-member-name">{topItem.memberName}</div>
+
         <div className="pending-meta">
-          <span>Filed: {defaultMostRecent.dateFiled}</span>
-          <strong style={{ fontSize: '0.9rem' }}>{defaultMostRecent.amount}</strong>
+          <span>Filed: {topItem.dateFiled}</span>
+          <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)' }}>{topItem.amount}</strong>
         </div>
       </div>
 

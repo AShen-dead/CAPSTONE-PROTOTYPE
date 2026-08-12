@@ -9,62 +9,51 @@ import ManagePaymentsPage from './components/ManagePaymentsPage';
 import ManageBenefitTypesPage from './components/ManageBenefitTypesPage';
 import ApproveBenefitRequestsPage from './components/ApproveBenefitRequestsPage';
 import GenerateReportsPage from './components/GenerateReportsPage';
+import FacultyPanel from './components/FacultyPanel';
 import LoginPage from './components/LoginPage';
-import { getToken, getUser, clearAuth, logout } from './api';
 import './App.css';
 
-function App() {
-  // ── ALL hooks must be at the top — no hooks after conditional returns ──
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getToken());
-  const [currentUser, setCurrentUser]         = useState(() => getUser());
-  const [activeTab, setActiveTab]             = useState('Home');
-  const [sidebarOpen, setSidebarOpen]         = useState(false);
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('Home');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ── Auth handlers ──────────────────────────────────────────────────────
-  const handleLoginSuccess = (user) => {
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-    setSidebarOpen(false);
-    setActiveTab('Home'); // Always land on the dashboard after login
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (_) {
-      // If server is unreachable, still clear local auth
-    } finally {
-      clearAuth();
-      setIsAuthenticated(false);
-      setCurrentUser(null);
-      setSidebarOpen(false);
-      setActiveTab('Home');
-    }
-  };
-
-  // ── Show Login page when not authenticated ─────────────────────────────
-  if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  // ── Dashboard (admin and faculty) ──────────────────────────────────────
-
-  const navbarConfig = {
-    logoUrl:        null,
-    systemTitle:    'ISPSC Tagudin Federated Faculty Union',
-    systemSubtitle: 'Compensation & Assistance Records Engine',
-    userName:       currentUser?.name ?? 'User',
-    userRole:       currentUser?.role === 'admin' ? 'Faculty Union Admin' : 'Faculty Member',
-    roleBadge:      currentUser?.role === 'admin' ? 'SYSTEM ADMIN' : 'FACULTY',
-    onLogout:       handleLogout,
-    onMenuToggle:   () => setSidebarOpen((v) => !v),
-  };
-
-  const totalContributionsData  = [1100000, 1220000, 1290000, 1380000, 1420000, 1482500];
-  const monthlyContributionsData = [115000, 132000, 120000, 150000, 135000, 145800];
+  // Mock data for charts
+  const totalContributionsData = [120000, 135000, 140000, 142000, 148000, 155000];
+  const monthlyContributionsData = [18000, 22000, 21000, 25000, 27000, 32000];
   const chartLabels = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
 
-  const renderMainContent = () => {
+  const handleLogin = (userData) => {
+    setCurrentUser(userData);
+    setActiveTab('Home');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
+  // 1) Unauthenticated -> Show Login Page
+  if (!currentUser) {
+    return <LoginPage onLogin={handleLogin} onLoginSuccess={handleLogin} />;
+  }
+
+  // 2) Faculty user -> Render Adaptive Faculty Panel
+  if (currentUser.role === 'faculty') {
+    return <FacultyPanel currentUser={currentUser} onLogout={handleLogout} />;
+  }
+
+  // 3) Admin user -> Render Secretary-Admin Dashboard
+  const navbarConfig = {
+    systemTitle: 'ISPSC Tagudin Federated Faculty Union',
+    systemSubtitle: 'Compensation & Assistance Records Engine',
+    userName: currentUser?.name ?? 'Sec. Administrator',
+    userRole: 'Faculty Union Admin',
+    roleBadge: 'SYSTEM ADMIN',
+    onLogout: handleLogout,
+    onMenuToggle: () => setSidebarOpen(v => !v)
+  };
+
+  const renderAdminContent = () => {
     switch (activeTab) {
       case 'Manage Members':
         return <ManageMembersPage />;
@@ -92,8 +81,6 @@ function App() {
                 headerTitle="TOTAL CONTRIBUTIONS"
                 value="₱ 1,482,500.00"
                 subtitle="All-time overall collected funds"
-                trendText="12.4% vs last year"
-                trendPositive={true}
                 chartType="bar"
                 data={totalContributionsData}
                 labels={chartLabels}
@@ -102,17 +89,15 @@ function App() {
                 headerTitle="CONTRIBUTION THIS MONTH"
                 value="₱ 145,800.00"
                 subtitle="July 2026 faculty union contribution activity"
-                trendText="8.2% vs June"
-                trendPositive={true}
                 chartType="area"
                 isMainFocus={true}
                 data={monthlyContributionsData}
                 labels={chartLabels}
               />
-              <PendingBenefitsCard />
+              <PendingBenefitsCard onNavigate={setActiveTab} />
             </div>
 
-            <RecentPaymentsTable />
+            <RecentPaymentsTable onNavigate={setActiveTab} />
           </main>
         );
     }
@@ -121,6 +106,7 @@ function App() {
   return (
     <div className="app-container">
       <Navbar {...navbarConfig} />
+
       <div className="app-body">
         <Sidebar
           activeItem={activeTab}
@@ -128,10 +114,8 @@ function App() {
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
-        {renderMainContent()}
+        {renderAdminContent()}
       </div>
     </div>
   );
 }
-
-export default App;

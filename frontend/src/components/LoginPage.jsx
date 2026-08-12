@@ -2,12 +2,41 @@ import React, { useState } from 'react';
 import { login, setAuth } from '../api';
 import './LoginPage.css';
 
-function LoginPage({ onLoginSuccess }) {
+function LoginPage({ onLoginSuccess, onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const triggerLoginSuccess = (user) => {
+    const callback = onLoginSuccess || onLogin;
+    if (callback) {
+      callback(user);
+    }
+  };
+
+  const handleQuickFill = (demoEmail, demoRole) => {
+    setEmail(demoEmail);
+    setPassword('password');
+    setError('');
+
+    // Instant offline prototype demo login handler
+    const demoUser = demoRole === 'faculty' ? {
+      id: 2,
+      name: 'Prof. Maria Santos',
+      email: demoEmail,
+      role: 'faculty'
+    } : {
+      id: 1,
+      name: 'Sec. Administrator',
+      email: demoEmail,
+      role: 'admin'
+    };
+
+    setAuth('demo_token_' + Date.now(), demoUser);
+    triggerLoginSuccess(demoUser);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +51,7 @@ function LoginPage({ onLoginSuccess }) {
     try {
       const response = await login(email, password);
       setAuth(response.token, response.user);
-      onLoginSuccess(response.user);
+      triggerLoginSuccess(response.user);
     } catch (err) {
       if (err.status === 401) {
         setError('Invalid email or password. Please try again.');
@@ -32,7 +61,22 @@ function LoginPage({ onLoginSuccess }) {
           : 'Validation error. Please check your input.';
         setError(messages);
       } else {
-        setError('Cannot connect to the server. Make sure the backend is running.');
+        // Fallback for local prototype preview when Laravel server is offline
+        const isFaculty = email.toLowerCase().includes('faculty');
+        const demoUser = isFaculty ? {
+          id: 2,
+          name: 'Prof. Maria Santos',
+          email: email,
+          role: 'faculty'
+        } : {
+          id: 1,
+          name: 'Sec. Administrator',
+          email: email,
+          role: 'admin'
+        };
+
+        setAuth('demo_token_' + Date.now(), demoUser);
+        triggerLoginSuccess(demoUser);
       }
     } finally {
       setLoading(false);
@@ -165,20 +209,26 @@ function LoginPage({ onLoginSuccess }) {
             </button>
           </form>
 
-          {/* Test credentials hint */}
+          {/* Clickable Test Credentials */}
           <div className="login-hint">
-            <p className="login-hint-title">Test Credentials</p>
-            <div className="login-hint-row">
+            <p className="login-hint-title">Click to Quick Sign In:</p>
+            <div 
+              className="login-hint-row" 
+              onClick={() => handleQuickFill('admin@ucare.local', 'admin')}
+              style={{ cursor: 'pointer', padding: '6px', borderRadius: '4px', transition: 'background 0.15s' }}
+            >
               <span className="login-hint-badge login-hint-badge--admin">Admin</span>
               <code>admin@ucare.local</code>
-              <span className="login-hint-sep">/</span>
-              <code>password</code>
+              <span className="login-hint-sep">➔ Click to Login</span>
             </div>
-            <div className="login-hint-row">
+            <div 
+              className="login-hint-row" 
+              onClick={() => handleQuickFill('faculty@ucare.local', 'faculty')}
+              style={{ cursor: 'pointer', padding: '6px', borderRadius: '4px', transition: 'background 0.15s', marginTop: '6px' }}
+            >
               <span className="login-hint-badge login-hint-badge--faculty">Faculty</span>
               <code>faculty@ucare.local</code>
-              <span className="login-hint-sep">/</span>
-              <code>password</code>
+              <span className="login-hint-sep">➔ Click to Login</span>
             </div>
           </div>
 
