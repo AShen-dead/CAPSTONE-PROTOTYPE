@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { animatePageEntrance, animateTableRows, animateButtonPress } from '../utils/animations';
 
 export default function GenerateReportsPage() {
   const [reportType, setReportType] = useState('Paid & Remitted Member Contributions');
@@ -6,6 +7,9 @@ export default function GenerateReportsPage() {
   const [fromDate, setFromDate] = useState('2026-01-01');
   const [toDate, setToDate] = useState('2026-07-28');
   const [isExporting, setIsExporting] = useState(false);
+
+  const containerRef = useRef(null);
+  const tableRef = useRef(null);
 
   // Sample data maps for report categories
   const reportData = {
@@ -50,6 +54,18 @@ export default function GenerateReportsPage() {
 
   const currentRows = reportData[reportType] || reportData['Paid & Remitted Member Contributions'];
 
+  useEffect(() => {
+    if (containerRef.current) {
+      animatePageEntrance(containerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      animateTableRows(tableRef.current);
+    }
+  }, [reportType]);
+
   // Table Headers helper based on selected report category
   const getTableHeaders = () => {
     if (reportType === 'Audit-ready transaction report') {
@@ -68,7 +84,8 @@ export default function GenerateReportsPage() {
   };
 
   // File Export Handler
-  const handleExport = () => {
+  const handleExport = (e) => {
+    animateButtonPress(e.currentTarget);
     setIsExporting(true);
 
     setTimeout(() => {
@@ -169,19 +186,19 @@ export default function GenerateReportsPage() {
   };
 
   return (
-    <div className="main-content">
+    <div className="main-content" ref={containerRef}>
       {/* Page Header */}
       <div className="dashboard-header">
         <div className="dashboard-header-text">
           <h1>Generate reports</h1>
-          <p>Export financial summaries, paid & remitted contributions, assistance disbursements, and audit logs</p>
+          <p>Export financial summaries, paid &amp; remitted contributions, assistance disbursements, and audit logs</p>
         </div>
       </div>
 
       {/* Report Controls Card */}
       <div className="report-controls-card">
         <div style={{ fontSize: '0.82rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary-maroon)', marginBottom: '16px' }}>
-          Report Filter Parameters & Export Format
+          Report Filter Parameters &amp; Export Format
         </div>
 
         <div className="report-controls-grid">
@@ -193,7 +210,7 @@ export default function GenerateReportsPage() {
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
             >
-              <option value="Paid & Remitted Member Contributions">Paid & Remitted Member Contributions</option>
+              <option value="Paid & Remitted Member Contributions">Paid &amp; Remitted Member Contributions</option>
               <option value="Outstanding / Unremitted Dues Summary">Outstanding / Unremitted Dues Summary</option>
               <option value="Summary of financial contributions">Summary of financial contributions</option>
               <option value="Assistance disbursement report">Assistance disbursement report</option>
@@ -269,7 +286,7 @@ export default function GenerateReportsPage() {
         </div>
 
         <div className="table-responsive">
-          <table className="data-table">
+          <table className="data-table" ref={tableRef}>
             <thead>
               <tr>
                 {getTableHeaders().map((h, i) => (

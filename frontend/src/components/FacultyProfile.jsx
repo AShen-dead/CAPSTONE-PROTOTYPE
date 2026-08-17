@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { animatePageEntrance, animateModalOpen, animateModalClose } from '../utils/animations';
 
 export default function FacultyProfile({ currentUser, onLogout }) {
   const user = currentUser || { name: 'Prof. Maria Santos', email: 'faculty@ucare.local' };
+
+  const containerRef = useRef(null);
+  const modalRef = useRef(null);
+  const overlayRef = useRef(null);
 
   // Modal State Controls
   const [activeModal, setActiveModal] = useState(null); // 'employment', 'password', 'notifications', 'policies'
@@ -18,6 +23,26 @@ export default function FacultyProfile({ currentUser, onLogout }) {
   const [benefitAlerts, setBenefitAlerts] = useState(true);
   const [bulletinAlerts, setBulletinAlerts] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      animatePageEntrance(containerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeModal && modalRef.current) {
+      animateModalOpen(modalRef.current, overlayRef.current);
+    }
+  }, [activeModal]);
+
+  const handleCloseModal = () => {
+    if (modalRef.current) {
+      animateModalClose(modalRef.current, overlayRef.current, () => setActiveModal(null));
+    } else {
+      setActiveModal(null);
+    }
+  };
 
   const handlePasswordSubmit = (e) => {
     e.preventDefault();
@@ -36,8 +61,8 @@ export default function FacultyProfile({ currentUser, onLogout }) {
       setNewPassword('');
       setConfirmPassword('');
       setPasswordFeedback('');
-      setActiveModal(null);
-    }, 1200);
+      handleCloseModal();
+    }, 1100);
   };
 
   const handleSaveNotifications = (e) => {
@@ -45,12 +70,12 @@ export default function FacultyProfile({ currentUser, onLogout }) {
     setNotifSaved(true);
     setTimeout(() => {
       setNotifSaved(false);
-      setActiveModal(null);
-    }, 1000);
+      handleCloseModal();
+    }, 900);
   };
 
   return (
-    <main className="main-content">
+    <main className="main-content" ref={containerRef}>
       {/* Profile Header */}
       <div className="faculty-profile-header-card">
         <div className="faculty-avatar-large">
@@ -142,7 +167,7 @@ export default function FacultyProfile({ currentUser, onLogout }) {
       <div 
         className="setting-card" 
         style={{ borderColor: '#FCA5A5', backgroundColor: '#FEF2F2', marginTop: '12px' }}
-        onClick={() => onLogout && onLogout()}
+        onClick={() => setActiveModal('logout')}
       >
         <div className="setting-card-left">
           <div className="setting-icon-box" style={{ backgroundColor: '#FEE2E2', color: '#DC2626', borderColor: '#FCA5A5' }}>
@@ -164,11 +189,11 @@ export default function FacultyProfile({ currentUser, onLogout }) {
          MODAL 1: Employment Information
          ─────────────────────────────────────────────────────────────────── */}
       {activeModal === 'employment' && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '580px' }}>
+        <div className="modal-overlay" ref={overlayRef}>
+          <div className="modal-content" ref={modalRef} style={{ maxWidth: '580px' }}>
             <div className="modal-header">
               <h3>Employment Information</h3>
-              <button className="btn-close-modal" onClick={() => setActiveModal(null)}>✕</button>
+              <button className="btn-close-modal" onClick={handleCloseModal}>✕</button>
             </div>
             <div className="modal-body-form" style={{ gap: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', background: '#F8FAFC', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
@@ -203,7 +228,7 @@ export default function FacultyProfile({ currentUser, onLogout }) {
               </div>
 
               <div className="modal-actions">
-                <button className="btn-primary" onClick={() => setActiveModal(null)}>Close</button>
+                <button className="btn-primary" onClick={handleCloseModal}>Close</button>
               </div>
             </div>
           </div>
@@ -214,11 +239,11 @@ export default function FacultyProfile({ currentUser, onLogout }) {
          MODAL 2: Change Password
          ─────────────────────────────────────────────────────────────────── */}
       {activeModal === 'password' && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" ref={overlayRef}>
+          <div className="modal-content" ref={modalRef}>
             <div className="modal-header">
               <h3>Change Account Password</h3>
-              <button className="btn-close-modal" onClick={() => setActiveModal(null)}>✕</button>
+              <button className="btn-close-modal" onClick={handleCloseModal}>✕</button>
             </div>
 
             <form onSubmit={handlePasswordSubmit} className="modal-body-form">
@@ -273,7 +298,7 @@ export default function FacultyProfile({ currentUser, onLogout }) {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setActiveModal(null)}>Cancel</button>
+                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancel</button>
                 <button type="submit" className="btn-primary">Save New Password</button>
               </div>
             </form>
@@ -285,11 +310,11 @@ export default function FacultyProfile({ currentUser, onLogout }) {
          MODAL 3: Notification Settings
          ─────────────────────────────────────────────────────────────────── */}
       {activeModal === 'notifications' && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" ref={overlayRef}>
+          <div className="modal-content" ref={modalRef}>
             <div className="modal-header">
               <h3>Notification Settings</h3>
-              <button className="btn-close-modal" onClick={() => setActiveModal(null)}>✕</button>
+              <button className="btn-close-modal" onClick={handleCloseModal}>✕</button>
             </div>
 
             <form onSubmit={handleSaveNotifications} className="modal-body-form" style={{ gap: '16px' }}>
@@ -334,7 +359,7 @@ export default function FacultyProfile({ currentUser, onLogout }) {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setActiveModal(null)}>Cancel</button>
+                <button type="button" className="btn-secondary" onClick={handleCloseModal}>Cancel</button>
                 <button type="submit" className="btn-primary">Save Preferences</button>
               </div>
             </form>
@@ -346,11 +371,11 @@ export default function FacultyProfile({ currentUser, onLogout }) {
          MODAL 4: Union Laws & Policies Reader
          ─────────────────────────────────────────────────────────────────── */}
       {activeModal === 'policies' && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '660px' }}>
+        <div className="modal-overlay" ref={overlayRef}>
+          <div className="modal-content" ref={modalRef} style={{ maxWidth: '660px' }}>
             <div className="modal-header">
               <h3>ISPSC Faculty Union Laws &amp; Policies</h3>
-              <button className="btn-close-modal" onClick={() => setActiveModal(null)}>✕</button>
+              <button className="btn-close-modal" onClick={handleCloseModal}>✕</button>
             </div>
 
             <div className="modal-body-form" style={{ maxHeight: '440px', overflowY: 'auto', gap: '16px', fontSize: '0.875rem' }}>
@@ -383,7 +408,80 @@ export default function FacultyProfile({ currentUser, onLogout }) {
               </div>
 
               <div className="modal-actions" style={{ marginTop: '12px' }}>
-                <button className="btn-primary" onClick={() => setActiveModal(null)}>I Understand &amp; Agree</button>
+                <button className="btn-primary" onClick={handleCloseModal}>I Understand &amp; Agree</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────────────
+         MODAL 5: Log Out Confirmation
+         ─────────────────────────────────────────────────────────────────── */}
+      {activeModal === 'logout' && (
+        <div className="modal-overlay" ref={overlayRef}>
+          <div className="modal-content" ref={modalRef} style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.25rem' }}>🚪</span>
+                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Sign Out Confirmation</h3>
+              </div>
+              <button className="btn-close-modal" onClick={handleCloseModal}>✕</button>
+            </div>
+
+            <div className="modal-body-form" style={{ padding: '24px', gap: '18px', textAlign: 'center' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FCA5A5',
+                color: '#DC2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto'
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              </div>
+
+              <div>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-main)' }}>
+                  Are you sure you want to sign out?
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                  You will be logged out of your ISPSC Tagudin Faculty Union session.
+                </p>
+              </div>
+
+              <div className="modal-actions" style={{ justifyContent: 'center', gap: '14px', marginTop: '6px' }}>
+                <button 
+                  type="button" 
+                  className="btn-secondary"
+                  onClick={handleCloseModal}
+                  style={{ minWidth: '120px' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="btn-primary"
+                  onClick={() => {
+                    handleCloseModal();
+                    if (onLogout) onLogout();
+                  }}
+                  style={{ 
+                    minWidth: '130px',
+                    background: 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)',
+                    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)' 
+                  }}
+                >
+                  Yes, Sign Out
+                </button>
               </div>
             </div>
           </div>

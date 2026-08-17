@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { animatePageEntrance, animateTableRows, animateModalOpen, animateModalClose } from '../utils/animations';
 
 export default function ManagePaymentsPage() {
   const [activeFilter, setActiveFilter] = useState('All'); // All, To verify, Verified
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [selectedProof, setSelectedProof] = useState(null); // Proof preview modal state
+
+  const containerRef = useRef(null);
+  const tableRef = useRef(null);
+  const proofModalRef = useRef(null);
+  const proofOverlayRef = useRef(null);
+  const recordModalRef = useRef(null);
+  const recordOverlayRef = useRef(null);
 
   // Default initial payments with sample proof receipt images
   const initialPayments = [
@@ -100,6 +108,46 @@ export default function ManagePaymentsPage() {
   const [newRefNo, setNewRefNo] = useState('');
   const [newAmount, setNewAmount] = useState('');
 
+  useEffect(() => {
+    if (containerRef.current) {
+      animatePageEntrance(containerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      animateTableRows(tableRef.current);
+    }
+  }, [activeFilter, payments]);
+
+  useEffect(() => {
+    if (selectedProof && proofModalRef.current) {
+      animateModalOpen(proofModalRef.current, proofOverlayRef.current);
+    }
+  }, [selectedProof]);
+
+  useEffect(() => {
+    if (showRecordModal && recordModalRef.current) {
+      animateModalOpen(recordModalRef.current, recordOverlayRef.current);
+    }
+  }, [showRecordModal]);
+
+  const handleCloseProofModal = () => {
+    if (proofModalRef.current) {
+      animateModalClose(proofModalRef.current, proofOverlayRef.current, () => setSelectedProof(null));
+    } else {
+      setSelectedProof(null);
+    }
+  };
+
+  const handleCloseRecordModal = () => {
+    if (recordModalRef.current) {
+      animateModalClose(recordModalRef.current, recordOverlayRef.current, () => setShowRecordModal(false));
+    } else {
+      setShowRecordModal(false);
+    }
+  };
+
   const handleVerify = (id) => {
     const updated = payments.map(item => item.id === id ? { ...item, status: 'Verified' } : item);
     setPayments(updated);
@@ -146,7 +194,7 @@ export default function ManagePaymentsPage() {
     setNewMember('');
     setNewRefNo('');
     setNewAmount('');
-    setShowRecordModal(false);
+    handleCloseRecordModal();
   };
 
   const filteredPayments = payments.filter(p => {
@@ -159,7 +207,7 @@ export default function ManagePaymentsPage() {
   const countVerified = payments.filter(p => p.status === 'Verified').length;
 
   return (
-    <div className="main-content">
+    <div className="main-content" ref={containerRef}>
       {/* Page Header */}
       <div className="dashboard-header">
         <div className="dashboard-header-text">
@@ -208,7 +256,7 @@ export default function ManagePaymentsPage() {
       {/* Payments Table with Proof Column & Preview Action */}
       <div className="recent-activity-panel" style={{ padding: '0', overflow: 'hidden' }}>
         <div className="table-responsive">
-          <table className="data-table">
+          <table className="data-table" ref={tableRef}>
             <thead>
               <tr>
                 <th>Member</th>
@@ -296,10 +344,10 @@ export default function ManagePaymentsPage() {
         </div>
       </div>
 
-      {/* Proof Preview Panel Modal (Submit Proof of Payment paired with Verify Payments) */}
+      {/* Proof Preview Panel Modal */}
       {selectedProof && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '640px' }}>
+        <div className="modal-overlay" ref={proofOverlayRef}>
+          <div className="modal-content" ref={proofModalRef} style={{ maxWidth: '640px' }}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '1.2rem' }}>📄</span>
@@ -308,7 +356,7 @@ export default function ManagePaymentsPage() {
                   <p style={{ margin: 0, fontSize: '0.78rem', color: '#FCE8B3' }}>{selectedProof.member} — {selectedProof.type}</p>
                 </div>
               </div>
-              <button className="btn-close-modal" onClick={() => setSelectedProof(null)}>✕</button>
+              <button className="btn-close-modal" onClick={handleCloseProofModal}>✕</button>
             </div>
 
             <div className="modal-body-form" style={{ gap: '16px' }}>
@@ -393,7 +441,7 @@ export default function ManagePaymentsPage() {
                   <button 
                     type="button" 
                     className="btn-secondary"
-                    onClick={() => setSelectedProof(null)}
+                    onClick={handleCloseProofModal}
                   >
                     Close Preview
                   </button>
@@ -420,11 +468,11 @@ export default function ManagePaymentsPage() {
 
       {/* Record Payment Modal */}
       {showRecordModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" ref={recordOverlayRef}>
+          <div className="modal-content" ref={recordModalRef}>
             <div className="modal-header">
               <h3>Record New Payment</h3>
-              <button className="btn-close-modal" onClick={() => setShowRecordModal(false)}>✕</button>
+              <button className="btn-close-modal" onClick={handleCloseRecordModal}>✕</button>
             </div>
 
             <form onSubmit={handleRecordPayment} className="modal-body-form">
@@ -473,7 +521,7 @@ export default function ManagePaymentsPage() {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowRecordModal(false)}>
+                <button type="button" className="btn-secondary" onClick={handleCloseRecordModal}>
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary">

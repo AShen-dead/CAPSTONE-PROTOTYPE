@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function FacultySubmit({ onSubmitSuccess }) {
+export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
   const [activeToggle, setActiveToggle] = useState('Proof of payment');
   const [categoryType, setCategoryType] = useState('Monthly Contribution Dues');
   const [reasonText, setReasonText] = useState('');
@@ -8,6 +8,64 @@ export default function FacultySubmit({ onSubmitSuccess }) {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const initialBenefitRequests = [
+    {
+      id: 1,
+      memberName: 'Prof. Maria Santos',
+      avatar: 'MS',
+      benefitType: 'Medical Assistance',
+      dateFiled: 'Jul 26, 2026',
+      amountRequested: '₱ 15,000.00',
+      status: 'Pending',
+      attachment: 'Hospitalization_Record.pdf',
+      notes: 'Hospitalization record attached for knee surgery.'
+    },
+    {
+      id: 2,
+      memberName: 'Dr. Juan Dela Cruz',
+      avatar: 'JD',
+      benefitType: 'Bereavement Assistance',
+      dateFiled: 'Jul 24, 2026',
+      amountRequested: '₱ 12,000.00',
+      status: 'Pending',
+      attachment: 'Death_Certificate_Copy.pdf',
+      notes: 'Death certificate copy submitted for audit review.'
+    },
+    {
+      id: 3,
+      memberName: 'Prof. Elena Ramos',
+      avatar: 'ER',
+      benefitType: 'Educational Assistance',
+      dateFiled: 'Jul 20, 2026',
+      amountRequested: '₱ 8,500.00',
+      status: 'Pending',
+      attachment: 'Conference_Presentation.pdf',
+      notes: 'International conference paper presentation registration fee.'
+    },
+    {
+      id: 4,
+      memberName: 'Engr. Roberto Garcia',
+      avatar: 'RG',
+      benefitType: 'Calamity Relief',
+      dateFiled: 'Jul 15, 2026',
+      amountRequested: '₱ 10,000.00',
+      status: 'Approved',
+      attachment: 'Calamity_Damage_Photos.pdf',
+      notes: 'Typhoon damage assistance disbursement approved.'
+    },
+    {
+      id: 5,
+      memberName: 'Dr. Clarissa Reyes',
+      avatar: 'CR',
+      benefitType: 'Medical Assistance',
+      dateFiled: 'Jul 10, 2026',
+      amountRequested: '₱ 5,000.00',
+      status: 'Declined',
+      attachment: 'Outpatient_Receipt.pdf',
+      notes: 'Outpatient prescription claim exceeded period cutoff.'
+    }
+  ];
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -21,31 +79,80 @@ export default function FacultySubmit({ onSubmitSuccess }) {
     }
   };
 
+  const handleToggleChange = (newMode) => {
+    setActiveToggle(newMode);
+    if (newMode === 'Assistance request') {
+      setCategoryType('Medical Assistance');
+    } else {
+      setCategoryType('Monthly Contribution Dues');
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      // Create new payment record from faculty submission
-      const newPayment = {
-        id: Date.now(),
-        member: 'Prof. Maria Santos',
-        avatar: 'MS',
-        type: categoryType === 'Monthly Contribution Dues' ? 'Contribution' : categoryType,
-        refNo: reasonText.trim() || `REF-2026-0${Math.floor(100 + Math.random() * 900)}`,
-        status: 'To verify',
-        amount: `₱ ${parseFloat(amountVal || 500).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        proofUrl: filePreviewUrl || '/assets/login-bg.jpg',
-        notes: reasonText || 'Faculty remitted proof of payment'
-      };
+    const facultyName = currentUser?.name || 'Prof. Maria Santos';
+    const userInitials = facultyName
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2) || 'FM';
 
-      // Save to shared localStorage for Admin Manage Payments verification
-      const existing = JSON.parse(localStorage.getItem('ucare_submitted_payments') || '[]');
-      localStorage.setItem('ucare_submitted_payments', JSON.stringify([newPayment, ...existing]));
+    setTimeout(() => {
+      if (activeToggle === 'Assistance request') {
+        // 1. Save Assistance Benefit Request for Admin Approve Benefit Requests Page
+        const newRequest = {
+          id: Date.now(),
+          memberName: facultyName,
+          avatar: userInitials,
+          benefitType: categoryType,
+          dateFiled: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          amountRequested: `₱ ${parseFloat(amountVal || 5000).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          status: 'Pending',
+          attachment: uploadedFile ? uploadedFile.name : 'Application_Document.pdf',
+          attachmentUrl: filePreviewUrl || '/assets/login-bg.jpg',
+          notes: reasonText.trim() || 'Faculty submitted assistance application'
+        };
+
+        const existingStr = localStorage.getItem('ucare_benefit_requests');
+        let existingRequests = initialBenefitRequests;
+        if (existingStr) {
+          try {
+            existingRequests = JSON.parse(existingStr);
+          } catch (err) {
+            existingRequests = initialBenefitRequests;
+          }
+        }
+
+        const updatedRequests = [newRequest, ...existingRequests];
+        localStorage.setItem('ucare_benefit_requests', JSON.stringify(updatedRequests));
+        window.dispatchEvent(new Event('ucare_requests_updated'));
+
+        alert(`Success! Your assistance request for ${categoryType} (₱${amountVal}) has been submitted for admin approval.`);
+      } else {
+        // 2. Save Payment Remittance for Admin Manage Payments Verification Page
+        const newPayment = {
+          id: Date.now(),
+          member: facultyName,
+          avatar: userInitials,
+          type: categoryType === 'Monthly Contribution Dues' ? 'Contribution' : categoryType,
+          refNo: reasonText.trim() || `REF-2026-0${Math.floor(100 + Math.random() * 900)}`,
+          status: 'To verify',
+          amount: `₱ ${parseFloat(amountVal || 500).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          proofUrl: filePreviewUrl || '/assets/login-bg.jpg',
+          notes: reasonText || 'Faculty remitted proof of payment'
+        };
+
+        const existingPayments = JSON.parse(localStorage.getItem('ucare_submitted_payments') || '[]');
+        localStorage.setItem('ucare_submitted_payments', JSON.stringify([newPayment, ...existingPayments]));
+
+        alert(`Success! Your proof of payment (₱${amountVal}) has been submitted for admin verification.`);
+      }
 
       setIsSubmitting(false);
-      alert(`Success! Your ${activeToggle.toLowerCase()} (₱${amountVal}) has been submitted for admin verification.`);
       setReasonText('');
       setAmountVal('');
       setUploadedFile(null);
@@ -71,7 +178,7 @@ export default function FacultySubmit({ onSubmitSuccess }) {
           <button 
             type="button"
             className={`filter-tab ${activeToggle === 'Proof of payment' ? 'active' : ''}`}
-            onClick={() => setActiveToggle('Proof of payment')}
+            onClick={() => handleToggleChange('Proof of payment')}
             style={{ flex: 1, textAlign: 'center' }}
           >
             Proof of Payment
@@ -79,7 +186,7 @@ export default function FacultySubmit({ onSubmitSuccess }) {
           <button 
             type="button"
             className={`filter-tab ${activeToggle === 'Assistance request' ? 'active' : ''}`}
-            onClick={() => setActiveToggle('Assistance request')}
+            onClick={() => handleToggleChange('Assistance request')}
             style={{ flex: 1, textAlign: 'center' }}
           >
             Assistance Request

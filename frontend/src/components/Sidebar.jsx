@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { animate, stagger } from 'animejs';
 
-export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = false, onClose, customItems }) {
+export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = false, onClose, customItems, pendingCount = 3 }) {
+  const sidebarNavRef = useRef(null);
+
   const defaultItems = [
     {
       id: 'Home',
@@ -19,7 +22,7 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = fal
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M22 21v-2a4 4 0 0 3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       )
@@ -47,7 +50,7 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = fal
     {
       id: 'Approve Benefit Requests',
       label: 'Approve Benefit Requests',
-      badge: '3',
+      badge: pendingCount > 0 ? String(pendingCount) : null,
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
@@ -69,6 +72,21 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = fal
 
   const navItems = customItems || defaultItems;
 
+  useEffect(() => {
+    if (sidebarNavRef.current) {
+      const items = sidebarNavRef.current.querySelectorAll('.nav-item');
+      if (items.length > 0) {
+        animate(Array.from(items), {
+          translateX: [-16, 0],
+          opacity: [0, 1],
+          duration: 340,
+          delay: stagger(40),
+          ease: 'outCubic'
+        });
+      }
+    }
+  }, [isOpen]);
+
   const handleNavClick = (id) => {
     if (onSelectTab) onSelectTab(id);
     if (onClose) onClose();
@@ -86,7 +104,7 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = fal
 
       <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
         <div className="sidebar-section-title">Navigation</div>
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" ref={sidebarNavRef}>
           {navItems.map((item) => {
             const isActive = activeItem === item.id;
             return (

@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import StatCard from './StatCard';
+import { animatePageEntrance, animateStatCards, animateTableRows } from '../utils/animations';
 
 export default function FacultyPaymentHistory() {
+  const containerRef = useRef(null);
+  const panelsRef = useRef(null);
+  const tableRef = useRef(null);
+
   const [payments] = useState([
     { id: 1, date: 'Jul 28, 2026', type: 'Monthly Dues', refNo: 'REF-2026-0891', amount: '₱ 500.00', status: 'Verified' },
     { id: 2, date: 'Jul 20, 2026', type: 'Special Assessment', refNo: 'REF-2026-0854', amount: '₱ 1,000.00', status: 'To verify' },
@@ -10,8 +15,20 @@ export default function FacultyPaymentHistory() {
     { id: 5, date: 'Apr 28, 2026', type: 'Monthly Dues', refNo: 'REF-2026-0490', amount: '₱ 500.00', status: 'Verified' }
   ]);
 
+  useEffect(() => {
+    if (containerRef.current) {
+      animatePageEntrance(containerRef.current);
+    }
+    if (panelsRef.current) {
+      animateStatCards(panelsRef.current);
+    }
+    if (tableRef.current) {
+      animateTableRows(tableRef.current);
+    }
+  }, []);
+
   return (
-    <main className="main-content">
+    <main className="main-content" ref={containerRef}>
       {/* Header */}
       <div className="dashboard-header">
         <div className="dashboard-header-text">
@@ -21,7 +38,7 @@ export default function FacultyPaymentHistory() {
       </div>
 
       {/* Two Summary Cards */}
-      <div className="top-panels-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className="top-panels-grid" ref={panelsRef} style={{ gridTemplateColumns: '1fr 1fr' }}>
         <StatCard
           headerTitle="TOTAL PAID"
           value="₱ 28,500.00"
@@ -47,30 +64,31 @@ export default function FacultyPaymentHistory() {
       </div>
 
       {/* Payment Entries Table */}
-      <div className="recent-activity-panel">
-        <div className="panel-header">
+      <div className="recent-activity-panel" style={{ padding: '0', overflow: 'hidden' }}>
+        <div className="panel-header" style={{ padding: '20px 24px 0 24px' }}>
           <h2>Payment Log Entries</h2>
         </div>
 
-        <div className="table-responsive">
-          <table className="data-table">
+        {/* Swipeable Responsive Table Container */}
+        <div className="table-responsive" style={{ touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch', border: 'none' }}>
+          <table className="data-table" ref={tableRef} style={{ minWidth: '680px' }}>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Reference #</th>
-                <th>Amount</th>
-                <th>Status</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Date</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Type</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Reference #</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Amount</th>
+                <th style={{ whiteSpace: 'nowrap' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {payments.map(p => (
                 <tr key={p.id}>
-                  <td>{p.date}</td>
-                  <td><strong style={{ color: 'var(--text-main)' }}>{p.type}</strong></td>
-                  <td><span className="ref-code">{p.refNo}</span></td>
-                  <td><strong className="amount-text">{p.amount}</strong></td>
-                  <td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{p.date}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}><strong style={{ color: 'var(--text-main)' }}>{p.type}</strong></td>
+                  <td style={{ whiteSpace: 'nowrap' }}><span className="ref-code">{p.refNo}</span></td>
+                  <td style={{ whiteSpace: 'nowrap' }}><strong className="amount-text">{p.amount}</strong></td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
                     <span className={`status-tag ${p.status === 'Verified' ? 'verified' : 'to-verify'}`}>
                       {p.status}
                     </span>

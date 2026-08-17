@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { animatePageEntrance, animateTableRows, animateModalOpen, animateModalClose } from '../utils/animations';
 
 export default function ManageMembersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  const containerRef = useRef(null);
+  const tableRef = useRef(null);
+  const modalRef = useRef(null);
+  const overlayRef = useRef(null);
 
   // Initial faculty members data
   const [members, setMembers] = useState([
@@ -35,6 +41,32 @@ export default function ManageMembersPage() {
     return matchesSearch && matchesCategory;
   });
 
+  useEffect(() => {
+    if (containerRef.current) {
+      animatePageEntrance(containerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      animateTableRows(tableRef.current);
+    }
+  }, [selectedCategory, searchTerm, members]);
+
+  useEffect(() => {
+    if (showAddModal && modalRef.current) {
+      animateModalOpen(modalRef.current, overlayRef.current);
+    }
+  }, [showAddModal]);
+
+  const handleCloseModal = () => {
+    if (modalRef.current) {
+      animateModalClose(modalRef.current, overlayRef.current, () => setShowAddModal(false));
+    } else {
+      setShowAddModal(false);
+    }
+  };
+
   const handleAddMember = (e) => {
     e.preventDefault();
     if (!newMemberName.trim()) return;
@@ -62,19 +94,19 @@ export default function ManageMembersPage() {
     setMembers([newEntry, ...members]);
     setNewMemberName('');
     setNewMemberContribution('');
-    setShowAddModal(false);
+    handleCloseModal();
   };
 
   return (
-    <div className="main-content">
+    <div className="main-content" ref={containerRef}>
       {/* Page Header */}
       <div className="dashboard-header">
         <div className="dashboard-header-text">
           <h1>Manage members</h1>
-          <p>ISPSC Tagudin Federated Faculty Union Member Directory & Running Totals</p>
+          <p>ISPSC Tagudin Federated Faculty Union Member Directory &amp; Running Totals</p>
         </div>
 
-        {/* Clean Top-Right Action Button (No Duplicate +) */}
+        {/* Clean Top-Right Action Button */}
         <button 
           className="btn-primary"
           onClick={() => setShowAddModal(true)}
@@ -146,7 +178,7 @@ export default function ManageMembersPage() {
       {/* Members Table */}
       <div className="recent-activity-panel" style={{ padding: '0', overflow: 'hidden' }}>
         <div className="table-responsive">
-          <table className="data-table">
+          <table className="data-table" ref={tableRef}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -197,13 +229,13 @@ export default function ManageMembersPage() {
 
       {/* Interactive Modal: Add Member */}
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" ref={overlayRef}>
+          <div className="modal-content" ref={modalRef}>
             <div className="modal-header">
               <h3>Add New Faculty Member</h3>
               <button 
                 className="btn-close-modal"
-                onClick={() => setShowAddModal(false)}
+                onClick={handleCloseModal}
               >
                 ✕
               </button>
@@ -261,7 +293,7 @@ export default function ManageMembersPage() {
                 <button 
                   type="button" 
                   className="btn-secondary"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={handleCloseModal}
                 >
                   Cancel
                 </button>
