@@ -50,7 +50,8 @@ export default function App() {
     userRole: 'Faculty Union Admin',
     roleBadge: 'SYSTEM ADMIN',
     onLogout: handleLogout,
-    onMenuToggle: () => setSidebarOpen(v => !v)
+    onMenuToggle: () => setSidebarOpen(v => !v),
+    onNavigate: setActiveTab
   };
 
   const renderAdminContent = () => {

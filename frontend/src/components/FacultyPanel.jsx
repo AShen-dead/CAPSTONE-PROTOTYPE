@@ -89,7 +89,12 @@ export default function FacultyPanel({ currentUser, onLogout }) {
     userRole: 'Faculty Member',
     roleBadge: 'FACULTY',
     onLogout: onLogout,
-    onMenuToggle: () => setSidebarOpen(v => !v)
+    onMenuToggle: () => setSidebarOpen(v => !v),
+    onNavigate: (tab) => {
+      if (tab === 'Submit Application / Receipt') setActiveTab('Submit');
+      else if (tab === 'Payment History') setActiveTab('Payment history');
+      else setActiveTab(tab);
+    }
   };
 
   return (
