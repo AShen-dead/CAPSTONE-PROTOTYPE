@@ -6,6 +6,7 @@ import FacultyRequests from './FacultyRequests';
 import FacultySubmit from './FacultySubmit';
 import FacultyPaymentHistory from './FacultyPaymentHistory';
 import FacultyProfile from './FacultyProfile';
+import { animateButtonPress } from '../utils/animations';
 
 export default function FacultyPanel({ currentUser, onLogout }) {
   const [activeTab, setActiveTab] = useState('Home');
@@ -71,7 +72,7 @@ export default function FacultyPanel({ currentUser, onLogout }) {
       case 'My assistance requests':
         return <FacultyRequests />;
       case 'Submit':
-        return <FacultySubmit onSubmitSuccess={() => setActiveTab('My assistance requests')} />;
+        return <FacultySubmit currentUser={currentUser} onSubmitSuccess={() => setActiveTab('My assistance requests')} />;
       case 'Payment history':
         return <FacultyPaymentHistory />;
       case 'Profile':
@@ -89,11 +90,16 @@ export default function FacultyPanel({ currentUser, onLogout }) {
     userRole: 'Faculty Member',
     roleBadge: 'FACULTY',
     onLogout: onLogout,
-    onMenuToggle: () => setSidebarOpen(v => !v)
+    onMenuToggle: () => setSidebarOpen(v => !v),
+    onNavigate: (tab) => {
+      if (tab === 'Submit Application / Receipt') setActiveTab('Submit');
+      else if (tab === 'Payment History') setActiveTab('Payment history');
+      else setActiveTab(tab);
+    }
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container faculty-panel-active">
       {/* Top Navbar */}
       <Navbar {...navbarConfig} />
 
@@ -123,7 +129,10 @@ export default function FacultyPanel({ currentUser, onLogout }) {
             <button
               key={item.id}
               className={`bottom-nav-item ${isActive ? 'active' : ''} ${item.isPlus ? 'bottom-nav-item--plus' : ''}`}
-              onClick={() => setActiveTab(item.id)}
+              onClick={(e) => {
+                animateButtonPress(e.currentTarget);
+                setActiveTab(item.id);
+              }}
             >
               <div className={item.isPlus ? 'bottom-nav-icon-circle' : 'bottom-nav-icon'}>
                 {item.icon}

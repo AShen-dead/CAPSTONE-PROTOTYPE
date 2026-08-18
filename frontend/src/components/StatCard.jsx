@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { animateNumberCounter } from '../utils/animations';
 
 export default function StatCard({ 
   headerTitle, 
@@ -13,6 +14,13 @@ export default function StatCard({
   currencySymbol = '₱ '
 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const valueRef = useRef(null);
+
+  useEffect(() => {
+    if (valueRef.current && value) {
+      animateNumberCounter(valueRef.current, value);
+    }
+  }, [value]);
 
   // Icon styling mapping
   const iconStyle = chartType === 'area' 
@@ -217,7 +225,7 @@ export default function StatCard({
         )}
       </div>
 
-      <div className="card-value">{value}</div>
+      <div className="card-value" ref={valueRef}>{value}</div>
       {subtitle && <div className="card-subtitle">{subtitle}</div>}
 
       {/* Backend Ready Dynamic SVG Chart with Interactive Tooltips */}

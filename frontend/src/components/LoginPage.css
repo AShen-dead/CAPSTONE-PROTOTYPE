@@ -13,17 +13,20 @@
   animation: fadeIn 0.4s ease both;
 }
 
-/* ── Left brand panel ─────────────────────────────────────── */
+/* ── Left brand panel with ISPSC Campus Background Blend ──── */
 .login-brand-panel {
   position: relative;
   flex: 1;
-  background: linear-gradient(145deg, var(--primary-maroon-dark) 0%, var(--primary-maroon) 55%, #B03060 100%);
+  background: linear-gradient(135deg, rgba(84, 17, 38, 0.88) 0%, rgba(110, 23, 49, 0.82) 55%, rgba(46, 139, 87, 0.75) 100%), url('/assets/login-bg.jpg');
+  background-size: cover;
+  background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 60px 48px;
   overflow: hidden;
   min-width: 0;
+  box-shadow: inset -10px 0 20px rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 860px) {
@@ -34,38 +37,47 @@
   position: relative;
   z-index: 2;
   color: #fff;
-  max-width: 420px;
+  max-width: 440px;
+  background: rgba(84, 17, 38, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
 }
 
 .login-logo-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   backdrop-filter: blur(8px);
   color: #fff;
-  font-weight: 800;
+  font-weight: 900;
   font-size: 1.3rem;
   letter-spacing: 2px;
-  padding: 10px 22px;
+  padding: 8px 20px;
   border-radius: var(--radius-md);
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .login-brand-title {
   font-size: 2rem;
   font-weight: 800;
   line-height: 1.2;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .login-brand-subtitle {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.72);
-  margin-bottom: 40px;
-  font-style: italic;
+  color: #FCE8B3;
+  margin-bottom: 32px;
+  font-weight: 600;
 }
 
 .login-brand-features {
@@ -79,26 +91,28 @@
   align-items: center;
   gap: 12px;
   font-size: 0.92rem;
-  color: rgba(255, 255, 255, 0.88);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .login-feature-icon {
   font-size: 1.1rem;
-  width: 32px;
-  height: 32px;
-  background: rgba(255, 255, 255, 0.12);
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Decorative background circles */
 .login-brand-circle {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   pointer-events: none;
   z-index: 1;
 }
@@ -113,7 +127,6 @@
 .login-brand-circle--3 {
   width: 120px; height: 120px;
   top: 40%; left: -50px;
-  background: rgba(255, 255, 255, 0.04);
 }
 
 /* ── Right form panel ─────────────────────────────────────── */

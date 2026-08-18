@@ -1,24 +1,164 @@
 import React, { useState } from 'react';
 
-export default function FacultySubmit({ onSubmitSuccess }) {
-  const [activeToggle, setActiveToggle] = useState('Assistance request');
-  const [categoryType, setCategoryType] = useState('Medical Assistance');
+export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
+  const [activeToggle, setActiveToggle] = useState('Proof of payment');
+  const [categoryType, setCategoryType] = useState('Monthly Contribution Dues');
   const [reasonText, setReasonText] = useState('');
   const [amountVal, setAmountVal] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const initialBenefitRequests = [
+    {
+      id: 1,
+      memberName: 'Prof. Maria Santos',
+      avatar: 'MS',
+      benefitType: 'Medical Assistance',
+      dateFiled: 'Jul 26, 2026',
+      amountRequested: '₱ 15,000.00',
+      status: 'Pending',
+      attachment: 'Hospitalization_Record.pdf',
+      notes: 'Hospitalization record attached for knee surgery.'
+    },
+    {
+      id: 2,
+      memberName: 'Dr. Juan Dela Cruz',
+      avatar: 'JD',
+      benefitType: 'Bereavement Assistance',
+      dateFiled: 'Jul 24, 2026',
+      amountRequested: '₱ 12,000.00',
+      status: 'Pending',
+      attachment: 'Death_Certificate_Copy.pdf',
+      notes: 'Death certificate copy submitted for audit review.'
+    },
+    {
+      id: 3,
+      memberName: 'Prof. Elena Ramos',
+      avatar: 'ER',
+      benefitType: 'Educational Assistance',
+      dateFiled: 'Jul 20, 2026',
+      amountRequested: '₱ 8,500.00',
+      status: 'Pending',
+      attachment: 'Conference_Presentation.pdf',
+      notes: 'International conference paper presentation registration fee.'
+    },
+    {
+      id: 4,
+      memberName: 'Engr. Roberto Garcia',
+      avatar: 'RG',
+      benefitType: 'Calamity Relief',
+      dateFiled: 'Jul 15, 2026',
+      amountRequested: '₱ 10,000.00',
+      status: 'Approved',
+      attachment: 'Calamity_Damage_Photos.pdf',
+      notes: 'Typhoon damage assistance disbursement approved.'
+    },
+    {
+      id: 5,
+      memberName: 'Dr. Clarissa Reyes',
+      avatar: 'CR',
+      benefitType: 'Medical Assistance',
+      dateFiled: 'Jul 10, 2026',
+      amountRequested: '₱ 5,000.00',
+      status: 'Declined',
+      attachment: 'Outpatient_Receipt.pdf',
+      notes: 'Outpatient prescription claim exceeded period cutoff.'
+    }
+  ];
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setUploadedFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFilePreviewUrl(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleToggleChange = (newMode) => {
+    setActiveToggle(newMode);
+    if (newMode === 'Assistance request') {
+      setCategoryType('Medical Assistance');
+    } else {
+      setCategoryType('Monthly Contribution Dues');
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    const facultyName = currentUser?.name || 'Prof. Maria Santos';
+    const userInitials = facultyName
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2) || 'FM';
+
     setTimeout(() => {
+      if (activeToggle === 'Assistance request') {
+        // 1. Save Assistance Benefit Request for Admin Approve Benefit Requests Page
+        const newRequest = {
+          id: Date.now(),
+          memberName: facultyName,
+          avatar: userInitials,
+          benefitType: categoryType,
+          dateFiled: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          amountRequested: `₱ ${parseFloat(amountVal || 5000).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          status: 'Pending',
+          attachment: uploadedFile ? uploadedFile.name : 'Application_Document.pdf',
+          attachmentUrl: filePreviewUrl || '/assets/login-bg.jpg',
+          notes: reasonText.trim() || 'Faculty submitted assistance application'
+        };
+
+        const existingStr = localStorage.getItem('ucare_benefit_requests');
+        let existingRequests = initialBenefitRequests;
+        if (existingStr) {
+          try {
+            existingRequests = JSON.parse(existingStr);
+          } catch (err) {
+            existingRequests = initialBenefitRequests;
+          }
+        }
+
+        const updatedRequests = [newRequest, ...existingRequests];
+        localStorage.setItem('ucare_benefit_requests', JSON.stringify(updatedRequests));
+        window.dispatchEvent(new Event('ucare_requests_updated'));
+
+        alert(`Success! Your assistance request for ${categoryType} (₱${amountVal}) has been submitted for admin approval.`);
+      } else {
+        // 2. Save Payment Remittance for Admin Manage Payments Verification Page
+        const newPayment = {
+          id: Date.now(),
+          member: facultyName,
+          avatar: userInitials,
+          type: categoryType === 'Monthly Contribution Dues' ? 'Contribution' : categoryType,
+          refNo: reasonText.trim() || `REF-2026-0${Math.floor(100 + Math.random() * 900)}`,
+          status: 'To verify',
+          amount: `₱ ${parseFloat(amountVal || 500).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          proofUrl: filePreviewUrl || '/assets/login-bg.jpg',
+          notes: reasonText || 'Faculty remitted proof of payment'
+        };
+
+        const existingPayments = JSON.parse(localStorage.getItem('ucare_submitted_payments') || '[]');
+        localStorage.setItem('ucare_submitted_payments', JSON.stringify([newPayment, ...existingPayments]));
+
+        alert(`Success! Your proof of payment (₱${amountVal}) has been submitted for admin verification.`);
+      }
+
       setIsSubmitting(false);
-      alert(`Success! Your ${activeToggle.toLowerCase()} has been submitted for verification.`);
       setReasonText('');
       setAmountVal('');
       setUploadedFile(null);
+      setFilePreviewUrl(null);
       if (onSubmitSuccess) onSubmitSuccess();
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -36,18 +176,20 @@ export default function FacultySubmit({ onSubmitSuccess }) {
         {/* Toggle Tabs */}
         <div className="filter-tabs" style={{ width: '100%', justifyContent: 'center' }}>
           <button 
-            className={`filter-tab ${activeToggle === 'Assistance request' ? 'active' : ''}`}
-            onClick={() => setActiveToggle('Assistance request')}
-            style={{ flex: 1, textAlign: 'center' }}
-          >
-            Assistance Request
-          </button>
-          <button 
+            type="button"
             className={`filter-tab ${activeToggle === 'Proof of payment' ? 'active' : ''}`}
-            onClick={() => setActiveToggle('Proof of payment')}
+            onClick={() => handleToggleChange('Proof of payment')}
             style={{ flex: 1, textAlign: 'center' }}
           >
             Proof of Payment
+          </button>
+          <button 
+            type="button"
+            className={`filter-tab ${activeToggle === 'Assistance request' ? 'active' : ''}`}
+            onClick={() => handleToggleChange('Assistance request')}
+            style={{ flex: 1, textAlign: 'center' }}
+          >
+            Assistance Request
           </button>
         </div>
 
@@ -82,7 +224,7 @@ export default function FacultySubmit({ onSubmitSuccess }) {
             <input 
               type="number" 
               className="form-input" 
-              placeholder="e.g. 5000.00"
+              placeholder="e.g. 1500.00"
               value={amountVal}
               onChange={(e) => setAmountVal(e.target.value)}
               required
@@ -104,23 +246,33 @@ export default function FacultySubmit({ onSubmitSuccess }) {
 
           {/* File Upload Area */}
           <div className="form-group">
-            <label>Supporting Document / Proof</label>
-            <label className="upload-dropzone">
-              <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>
-                {uploadedFile ? uploadedFile.name : 'Click or drop files to upload'}
-              </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Supports PDF, PNG, JPG (Max 10MB)
-              </div>
+            <label>Supporting Document / Proof of Payment Image</label>
+            <label className="upload-dropzone" style={{ borderStyle: uploadedFile ? 'solid' : 'dashed', borderColor: uploadedFile ? 'var(--primary-maroon)' : undefined }}>
+              {filePreviewUrl ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <img src={filePreviewUrl} alt="Receipt Preview" style={{ maxHeight: '140px', borderRadius: '6px', objectFit: 'contain' }} />
+                  <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--primary-maroon)' }}>{uploadedFile.name}</span>
+                </div>
+              ) : (
+                <>
+                  <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>
+                    {uploadedFile ? uploadedFile.name : 'Click or drop payment receipt screenshot / photo'}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Supports PNG, JPG, JPEG (Max 10MB)
+                  </div>
+                </>
+              )}
               <input 
                 type="file" 
+                accept="image/*"
                 style={{ display: 'none' }}
-                onChange={(e) => setUploadedFile(e.target.files[0])}
+                onChange={handleFileChange}
               />
             </label>
           </div>

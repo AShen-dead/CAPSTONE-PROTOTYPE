@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import { login, setAuth } from '../api';
 import './LoginPage.css';
 
+// =========================================================================
+// ISPSC Tagudin Campus Building Background Picture Path
+// =========================================================================
+const LOGIN_BG_IMAGE_PATH = "/assets/login-bg.jpg";
+
 function LoginPage({ onLoginSuccess, onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -85,8 +90,15 @@ function LoginPage({ onLoginSuccess, onLogin }) {
 
   return (
     <div className="login-page">
-      {/* Left Panel — Branding */}
-      <div className="login-brand-panel">
+      {/* Left Panel — Branding with ISPSC Campus Background Picture Overlay */}
+      <div 
+        className="login-brand-panel"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(84, 17, 38, 0.88) 0%, rgba(110, 23, 49, 0.82) 55%, rgba(46, 139, 87, 0.75) 100%), url("${LOGIN_BG_IMAGE_PATH}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
         <div className="login-brand-content">
           <div className="login-logo-badge">U.C.A.R.E</div>
           <h1 className="login-brand-title">
@@ -116,7 +128,7 @@ function LoginPage({ onLoginSuccess, onLogin }) {
           </div>
         </div>
 
-        {/* Decorative circles */}
+        {/* Decorative background circles */}
         <div className="login-brand-circle login-brand-circle--1" />
         <div className="login-brand-circle login-brand-circle--2" />
         <div className="login-brand-circle login-brand-circle--3" />

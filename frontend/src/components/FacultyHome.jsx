@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import StatCard from './StatCard';
+import { animatePageEntrance, animateStatCards } from '../utils/animations';
 
 export default function FacultyHome({ currentUser, onNavigate }) {
   const user = currentUser || { name: 'Prof. Maria Santos', email: 'faculty@ucare.local' };
+  const containerRef = useRef(null);
+  const panelsRef = useRef(null);
 
   const recentRequests = [
     { id: 1, type: 'Medical Assistance', date: 'Jul 26, 2026', amount: '₱ 15,000.00', status: 'Pending' },
@@ -15,8 +18,17 @@ export default function FacultyHome({ currentUser, onNavigate }) {
     { id: 3, date: 'May 28, 2026', type: 'Monthly Dues', refNo: 'REF-2026-0618', amount: '₱ 500.00', status: 'Verified' }
   ];
 
+  useEffect(() => {
+    if (containerRef.current) {
+      animatePageEntrance(containerRef.current);
+    }
+    if (panelsRef.current) {
+      animateStatCards(panelsRef.current);
+    }
+  }, []);
+
   return (
-    <main className="main-content">
+    <main className="main-content" ref={containerRef}>
       {/* Page Header / Profile Summary Row */}
       <div className="faculty-profile-header-card">
         <div className="faculty-avatar-large">
@@ -32,7 +44,7 @@ export default function FacultyHome({ currentUser, onNavigate }) {
       </div>
 
       {/* Summary Cards Row */}
-      <div className="top-panels-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className="top-panels-grid" ref={panelsRef} style={{ gridTemplateColumns: '1fr 1fr' }}>
         <StatCard
           headerTitle="TOTAL CONTRIBUTIONS"
           value="₱ 28,500.00"

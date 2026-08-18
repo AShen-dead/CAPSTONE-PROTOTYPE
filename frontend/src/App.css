@@ -35,10 +35,13 @@
 }
 
 .brand-logo-img {
-  height: 42px;
+  height: 44px;
   width: auto;
   object-fit: contain;
   border-radius: var(--radius-sm);
+  background-color: #FFFFFF;
+  padding: 3px 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
 }
 
 .brand-logo-badge {
@@ -117,6 +120,138 @@
   border-radius: 50%;
   background-color: #EF4444;
   border: 1.5px solid #8B1E3F;
+}
+
+.notification-badge-count {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background-color: #EF4444;
+  color: #FFFFFF;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 10px;
+  border: 1.5px solid #8B1E3F;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Notification Dropdown Panel */
+.notification-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 360px;
+  max-width: 90vw;
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.notification-header {
+  padding: 14px 16px;
+  background: #F8FAFC;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notif-count-pill {
+  background: #FEE2E2;
+  color: #B91C1C;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.notif-mark-read-btn {
+  background: none;
+  border: none;
+  color: var(--primary-maroon);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.notif-mark-read-btn:hover {
+  background: rgba(139, 30, 63, 0.08);
+}
+
+.notification-list {
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notification-item:hover {
+  background-color: #FDF2F5;
+}
+
+.notification-item--unread {
+  background-color: #FEF8E7;
+  border-left: 4px solid #F4B942;
+}
+
+.notif-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notif-item-title {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.notif-item-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.notif-item-msg {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.notif-item-action {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--primary-maroon);
+  margin-top: 4px;
+}
+
+.notification-footer {
+  padding: 10px 16px;
+  background: #F8FAFC;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  font-weight: 600;
 }
 
 .system-admin-badge {
@@ -201,6 +336,15 @@
   border-color: #EF4444;
 }
 
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: #FFFFFF;
+  cursor: pointer;
+  padding: 4px;
+}
+
 /* App Body & Sidebar Layout */
 .app-body {
   display: flex;
@@ -209,7 +353,7 @@
 
 /* Rich Maroon Sidebar */
 .sidebar {
-  width: 265px;
+  width: 275px;
   background: linear-gradient(180deg, #6E1731 0%, #541126 100%);
   color: var(--text-inverse);
   display: flex;
@@ -244,10 +388,11 @@
   padding: 11px 16px;
   border-radius: var(--radius-md);
   color: #F8D7E0;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
@@ -277,8 +422,16 @@
   color: #1E293B;
   font-size: 0.72rem;
   font-weight: 800;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  margin-right: 2px;
 }
 
 .sidebar-footer {
@@ -306,12 +459,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 }
 
 .dashboard-header-text {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .dashboard-header h1 {
@@ -319,6 +474,7 @@
   font-weight: 800;
   color: var(--text-main);
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .dashboard-header p {
@@ -676,18 +832,41 @@
   color: var(--text-main);
 }
 
+/* Fluid Table Responsive Container (Adjusts seamlessly when zooming in/out) */
 .table-responsive {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
+  background-color: #FFFFFF;
+  display: block;
+}
+
+/* Styled custom horizontal scrollbar for tables when zoomed in */
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive::-webkit-scrollbar-track {
+  background: #F1F5F9;
+  border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #8B1E3F;
 }
 
 .data-table {
   width: 100%;
+  min-width: 640px; /* Ensures text columns stay legible without collapsing on zoom */
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
+  table-layout: auto;
 }
 
 .data-table th {
@@ -699,6 +878,7 @@
   letter-spacing: 0.08em;
   padding: 14px 18px;
   border-bottom: 2px solid #541126;
+  white-space: nowrap;
 }
 
 .data-table td {
@@ -706,6 +886,13 @@
   border-bottom: 1px solid var(--border-light);
   color: var(--text-main);
   vertical-align: middle;
+  white-space: nowrap;
+}
+
+.data-table td.cell-wrap,
+.data-table td:first-child {
+  white-space: normal;
+  word-break: break-word;
 }
 
 .data-table tbody tr:nth-child(even) {
@@ -1029,7 +1216,7 @@ textarea.form-input {
   margin-top: 8px;
 }
 
-/* Translucent Mobile Bottom Navigation Bar */
+/* Translucent Mobile Bottom Navigation Bar (For Faculty View) */
 .mobile-bottom-nav {
   display: none;
   position: fixed;
@@ -1241,26 +1428,33 @@ textarea.form-input {
   color: var(--primary-maroon);
 }
 
-/* RESPONSIVE BREAKPOINTS (@media max-width: 768px - Phone narrow layout) */
+/* ───────────────────────────────────────────────────────────────────────────
+   ADAPTIVE RESPONSIVE BREAKPOINTS (Laptop + Tablet + Phone)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Tablet & Intermediate Wide Layouts (769px to 1100px) */
+@media (max-width: 1100px) {
+  .top-panels-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Mobile Phone & Narrow Screen Adaptive Layouts (<= 768px) */
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
-
-  .mobile-bottom-nav {
-    display: flex;
-  }
-
-  .main-content {
-    padding: 20px 16px 84px 16px;
-  }
-
+  /* Top Navbar adjustments */
   .top-navbar {
     padding: 0 16px;
+    height: 64px;
+  }
+
+  .nav-hamburger {
+    display: flex;
+    margin-right: 8px;
   }
 
   .brand-title {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
+    line-height: 1.15;
   }
 
   .brand-subtitle {
@@ -1273,13 +1467,146 @@ textarea.form-input {
 
   .system-admin-badge {
     padding: 4px 8px;
-    font-size: 0.68rem;
+    font-size: 0.65rem;
   }
 
+  /* Responsive Off-Canvas Drawer Sidebar for Mobile */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 270px;
+    z-index: 250;
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .sidebar.sidebar--open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 240;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  /* Mobile Content Padding */
+  .main-content {
+    padding: 20px 16px 84px 16px;
+    gap: 20px;
+  }
+
+  /* Stacked Page Headers & Action Buttons */
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .dashboard-header p {
+    font-size: 0.82rem;
+  }
+
+  .dashboard-header .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Home Dashboard Grid Stacking */
   .top-panels-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
+  /* Controls Row (Search & Filters) Stacking */
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search-field-container {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .category-dropdown-container {
+    width: 100%;
+  }
+
+  .btn-categories {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dropdown-menu {
+    width: 100%;
+  }
+
+  /* Status Filter Tabs (Manage Payments & Approve Requests) */
+  .filter-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .filter-tab {
+    flex: 1;
+    min-width: 100px;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+  }
+
+  /* Approve Benefit Requests Cards Adaptive Stacking */
+  .requests-list {
+    gap: 14px;
+  }
+
+  .request-card {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 16px !important;
+    padding: 18px !important;
+  }
+
+  .request-info {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .request-actions {
+    width: 100%;
+  }
+
+  .request-actions .btn-sm {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Generate Reports Grid & Buttons */
+  .report-controls-card {
+    padding: 20px;
+  }
+
+  .report-controls-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Faculty Panel Settings & Profile */
   .settings-grid {
     grid-template-columns: 1fr;
   }
@@ -1293,8 +1620,15 @@ textarea.form-input {
     padding: 20px;
   }
 
-  .btn-primary {
-    width: 100%;
-    justify-content: center;
+  /* Translucent Mobile Bottom Navigation Bar (Shown on Mobile screens < 768px) */
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  /* Hide side navbar & hamburger toggle button on mobile when bottom navigation is active */
+  .faculty-panel-active .sidebar,
+  .faculty-panel-active .sidebar-backdrop,
+  .faculty-panel-active .nav-hamburger {
+    display: none !important;
   }
 }
