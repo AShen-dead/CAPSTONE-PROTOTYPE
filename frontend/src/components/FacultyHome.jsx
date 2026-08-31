@@ -1,31 +1,50 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import StatCard from './StatCard';
 import { animatePageEntrance, animateStatCards } from '../utils/animations';
+import { fetchFacultyDashboard } from '../api';
 
 export default function FacultyHome({ currentUser, onNavigate }) {
-  const user = currentUser || { name: 'Prof. Maria Santos', email: 'faculty@ucare.local' };
+  const user = currentUser || { name: 'Faculty Member', email: 'faculty@ucare.local' };
   const containerRef = useRef(null);
   const panelsRef = useRef(null);
 
-  const recentRequests = [
-    { id: 1, type: 'Medical Assistance', date: 'Jul 26, 2026', amount: '₱ 15,000.00', status: 'Pending' },
-    { id: 2, type: 'Educational Assistance', date: 'May 12, 2026', amount: '₱ 8,500.00', status: 'Released' }
-  ];
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const recentPayments = [
-    { id: 1, date: 'Jul 28, 2026', type: 'Monthly Dues', refNo: 'REF-2026-0891', amount: '₱ 500.00', status: 'Verified' },
-    { id: 2, date: 'Jun 28, 2026', type: 'Monthly Dues', refNo: 'REF-2026-0742', amount: '₱ 500.00', status: 'Verified' },
-    { id: 3, date: 'May 28, 2026', type: 'Monthly Dues', refNo: 'REF-2026-0618', amount: '₱ 500.00', status: 'Verified' }
-  ];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const res = await fetchFacultyDashboard();
+        setDashboardData(res);
+      } catch (err) {
+        console.error("Failed to load faculty dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   useEffect(() => {
     if (containerRef.current) {
       animatePageEntrance(containerRef.current);
     }
-    if (panelsRef.current) {
+    if (panelsRef.current && !loading) {
       animateStatCards(panelsRef.current);
     }
-  }, []);
+  }, [loading]);
+
+  // Provide fallbacks while loading
+  const totalContributions = dashboardData?.total_contributions || 0;
+  const activeRequestsCount = dashboardData?.active_requests || 0;
+  const recentRequests = dashboardData?.recent_requests || [];
+  const recentPayments = dashboardData?.recent_payments || [];
+  
+  const chartLabels = dashboardData?.chart_labels || ['—', '—', '—', '—', '—', '—'];
+  const contributionsChart = dashboardData?.contributions_chart || [0, 0, 0, 0, 0, 0];
+  const requestsChart = dashboardData?.requests_chart || [0, 0, 0, 0, 0, 0];
+
+  const formatCurrency = (val) => '₱ ' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
   return (
     <main className="main-content" ref={containerRef}>
@@ -38,7 +57,7 @@ export default function FacultyHome({ currentUser, onNavigate }) {
           <div className="faculty-profile-name">{user.name}</div>
           <div className="faculty-profile-role">Faculty Member • ISPSC Tagudin Campus</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-            College of Teacher Education
+            Faculty Union Portal
           </div>
         </div>
       </div>
@@ -46,22 +65,22 @@ export default function FacultyHome({ currentUser, onNavigate }) {
       {/* Summary Cards Row */}
       <div className="top-panels-grid" ref={panelsRef} style={{ gridTemplateColumns: '1fr 1fr' }}>
         <StatCard
-          headerTitle="TOTAL CONTRIBUTIONS"
-          value="₱ 28,500.00"
-          subtitle="Your total union dues remitted to date"
+          headerTitle="TOTAL CONTRIBUTIONS (VERIFIED)"
+          value={loading ? '...' : formatCurrency(totalContributions)}
+          subtitle="Your total union dues remitted to date (only verified payments)"
           chartType="bar"
-          data={[3500, 4500, 5000, 5000, 5000, 5500]}
-          labels={['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']}
+          data={contributionsChart}
+          labels={chartLabels}
         />
 
         <StatCard
           headerTitle="ACTIVE REQUESTS"
-          value="1 Pending"
+          value={loading ? '...' : `${activeRequestsCount} Pending`}
           subtitle="Assistance applications currently under review"
           chartType="area"
           isMainFocus={true}
-          data={[0, 1, 0, 1, 0, 1]}
-          labels={['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']}
+          data={requestsChart}
+          labels={chartLabels}
         />
       </div>
 
@@ -81,17 +100,23 @@ export default function FacultyHome({ currentUser, onNavigate }) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {recentRequests.map(req => (
-              <div key={req.id} className="pending-list-item">
-                <div className="item-left">
-                  <span className="item-member" style={{ fontSize: '0.95rem' }}>{req.type}</span>
-                  <span className="item-benefit">Filed: {req.date} • {req.amount}</span>
+            {recentRequests.length > 0 ? (
+              recentRequests.map(req => (
+                <div key={req.id} className="pending-list-item">
+                  <div className="item-left">
+                    <span className="item-member" style={{ fontSize: '0.95rem' }}>{req.type}</span>
+                    <span className="item-benefit">Filed: {req.date} • {req.amount}</span>
+                  </div>
+                  <span className={`status-tag ${req.status === 'Pending' || req.status === 'To verify' ? 'pending' : req.status === 'Approved' ? 'released' : 'declined'}`}>
+                    {req.status}
+                  </span>
                 </div>
-                <span className={`status-tag ${req.status === 'Pending' ? 'pending' : 'released'}`}>
-                  {req.status}
-                </span>
+              ))
+            ) : (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>
+                No recent assistance requests found.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -114,17 +139,31 @@ export default function FacultyHome({ currentUser, onNavigate }) {
                 <tr>
                   <th>Date</th>
                   <th>Type</th>
+                  <th>Status</th>
                   <th>Amount</th>
                 </tr>
               </thead>
               <tbody>
-                {recentPayments.map(p => (
-                  <tr key={p.id}>
-                    <td>{p.date}</td>
-                    <td>{p.type}</td>
-                    <td><strong className="amount-text">{p.amount}</strong></td>
+                {recentPayments.length > 0 ? (
+                  recentPayments.map(p => (
+                    <tr key={p.id}>
+                      <td>{p.date}</td>
+                      <td>{p.type}</td>
+                      <td>
+                         <span className={`status-tag ${p.status === 'Verified' ? 'verified' : p.status === 'Pending' ? 'to-verify' : 'declined'}`} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
+                           {p.status}
+                         </span>
+                      </td>
+                      <td><strong className="amount-text">{p.amount}</strong></td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                      No recent payments found.
+                    </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

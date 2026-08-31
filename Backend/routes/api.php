@@ -6,7 +6,10 @@ use App\Http\Controllers\Api\BenefitRequestController;
 use App\Http\Controllers\Api\BenefitTypeController;
 use App\Http\Controllers\Api\ContributionController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\FacultyDashboardController;
+use App\Http\Controllers\Api\FacultyHistoryController;
 use App\Http\Controllers\Api\FacultyMemberController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\FacultyPaymentController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NotifyController;
@@ -36,8 +39,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard stats
     Route::get('dashboard', [DashboardController::class, 'index']);
 
-    // Faculty self-service: submit their own payment proof
+    // Faculty self-service
     Route::post('faculty/submit-payment', [FacultyPaymentController::class, 'store']);
+    Route::get('faculty/dashboard', [FacultyDashboardController::class, 'index']);
+    Route::get('faculty/payments', [FacultyHistoryController::class, 'payments']);
+    Route::get('faculty/requests', [FacultyHistoryController::class, 'requests']);
+
+    // Reports / Logs
+    Route::get('reports', [ReportController::class, 'index']);
 
     // Faculty Members
     Route::apiResource('faculty-members', FacultyMemberController::class);

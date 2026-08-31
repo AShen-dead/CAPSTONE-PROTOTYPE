@@ -81,6 +81,25 @@ export function fetchDashboard() {
   return apiFetch('/dashboard');
 }
 
+export function fetchFacultyDashboard() {
+  return apiFetch('/faculty/dashboard');
+}
+
+export function fetchFacultyPayments() {
+  return apiFetch('/faculty/payments');
+}
+
+export function fetchFacultyRequests() {
+  return apiFetch('/faculty/requests');
+}
+
+export function fetchReports(fromDate, toDate) {
+  const params = new URLSearchParams();
+  if (fromDate) params.append('from_date', fromDate);
+  if (toDate) params.append('to_date', toDate);
+  return apiFetch(`/reports?${params.toString()}`);
+}
+
 /**
  * POST /api/notify
  * Sends a real-time notification. Faculty → all admins. Admin → specific user.

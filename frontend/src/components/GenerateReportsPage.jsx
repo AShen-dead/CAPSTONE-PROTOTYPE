@@ -1,58 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { animatePageEntrance, animateTableRows, animateButtonPress } from '../utils/animations';
+import { fetchReports } from '../api';
 
 export default function GenerateReportsPage() {
-  const [reportType, setReportType] = useState('Paid & Remitted Member Contributions');
+  const [reportType, setReportType] = useState('Verified Payments Log');
   const [exportFormat, setExportFormat] = useState('CSV'); // CSV, Excel, PDF
-  const [fromDate, setFromDate] = useState('2026-01-01');
-  const [toDate, setToDate] = useState('2026-07-28');
+  
+  // Set default dates (e.g. current month)
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  
+  const [fromDate, setFromDate] = useState(firstDay.toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(today.toISOString().split('T')[0]);
+  const [isAllTime, setIsAllTime] = useState(false);
+  
   const [isExporting, setIsExporting] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const containerRef = useRef(null);
   const tableRef = useRef(null);
 
-  // Sample data maps for report categories
-  const reportData = {
-    'Paid & Remitted Member Contributions': [
-      { col1: 'Prof. Antonio Mendoza', col2: 'College of Arts & Sciences', col3: 'Remitted (Jul 28, 2026)', col4: '₱ 42,000.00' },
-      { col1: 'Dr. Fernando Lopez', col2: 'College of Agriculture', col3: 'Remitted (Jul 24, 2026)', col4: '₱ 45,100.00' },
-      { col1: 'Dr. Juan Dela Cruz', col2: 'College of Computing & IT', col3: 'Remitted (Jul 27, 2026)', col4: '₱ 34,200.00' },
-      { col1: 'Dr. Clarissa Reyes', col2: 'College of Business Admin', col3: 'Remitted (Jul 27, 2026)', col4: '₱ 31,500.00' },
-      { col1: 'Prof. Maria Santos', col2: 'College of Teacher Education', col3: 'Remitted (Jul 28, 2026)', col4: '₱ 28,500.00' }
-    ],
-    'Outstanding / Unremitted Dues Summary': [
-      { col1: 'Engr. Roberto Garcia', col2: 'College of Engineering', col3: 'Unremitted (On leave)', col4: '₱ 2,500.00' },
-      { col1: 'Prof. Elena Ramos', col2: 'College of Nursing', col3: 'Pending Remittance', col4: '₱ 1,500.00' },
-      { col1: 'Prof. Beatriz Laurel', col2: 'College of Teacher Education', col3: 'Retired - Final Audit', col4: '₱ 500.00' }
-    ],
-    'Summary of financial contributions': [
-      { col1: 'Prof. Antonio Mendoza', col2: 'Monthly Dues + Mutual Aid', col3: '14 Transactions', col4: '₱ 42,000.00' },
-      { col1: 'Dr. Fernando Lopez', col2: 'Monthly Dues + Mutual Aid', col3: '15 Transactions', col4: '₱ 45,100.00' },
-      { col1: 'Dr. Juan Dela Cruz', col2: 'Monthly Dues', col3: '11 Transactions', col4: '₱ 34,200.00' },
-      { col1: 'Dr. Clarissa Reyes', col2: 'Monthly Dues + Special', col3: '10 Transactions', col4: '₱ 31,500.00' },
-      { col1: 'Prof. Maria Santos', col2: 'Monthly Dues', col3: '9 Transactions', col4: '₱ 28,500.00' }
-    ],
-    'Assistance disbursement report': [
-      { col1: 'Prof. Maria Santos', col2: 'Medical Assistance', col3: 'Approved (Jul 26)', col4: '₱ 15,000.00' },
-      { col1: 'Engr. Roberto Garcia', col2: 'Calamity Relief', col3: 'Disbursed (Jul 15)', col4: '₱ 10,000.00' },
-      { col1: 'Prof. Elena Ramos', col2: 'Educational Aid', col3: 'Approved (Jul 20)', col4: '₱ 8,500.00' },
-      { col1: 'Dr. Juan Dela Cruz', col2: 'Bereavement Assistance', col3: 'Disbursed (Jun 12)', col4: '₱ 12,000.00' }
-    ],
-    'Audit-ready transaction report': [
-      { col1: 'REF-2026-0891', col2: 'Prof. Antonio Mendoza', col3: 'Jul 28, 2026', col4: '₱ 500.00' },
-      { col1: 'REF-2026-0890', col2: 'Dr. Clarissa Reyes', col3: 'Jul 27, 2026', col4: '₱ 1,200.00' },
-      { col1: 'REF-2026-0889', col2: 'Engr. Michael Tan', col3: 'Jul 27, 2026', col4: '₱ 500.00' },
-      { col1: 'REF-2026-0888', col2: 'Prof. Beatriz Laurel', col3: 'Jul 25, 2026', col4: '₱ 1,000.00' }
-    ],
-    'Member contribution report': [
-      { col1: 'Prof. Maria Santos', col2: 'College of Teacher Education', col3: 'Active Member', col4: '₱ 28,500.00' },
-      { col1: 'Dr. Juan Dela Cruz', col2: 'College of Computing & IT', col3: 'Active Member', col4: '₱ 34,200.00' },
-      { col1: 'Engr. Roberto Garcia', col2: 'College of Engineering', col3: 'On leave', col4: '₱ 19,800.00' },
-      { col1: 'Prof. Beatriz Laurel', col2: 'College of Teacher Education', col3: 'Retired', col4: '₱ 52,800.00' }
-    ]
-  };
-
-  const currentRows = reportData[reportType] || reportData['Paid & Remitted Member Contributions'];
+  // Load data when dates change
+  useEffect(() => {
+    const loadLogs = async () => {
+      setLoading(true);
+      try {
+        const actualFrom = isAllTime ? '' : fromDate;
+        const actualTo = isAllTime ? '' : toDate;
+        const res = await fetchReports(actualFrom, actualTo);
+        setLogs(res?.data || []);
+      } catch (err) {
+        console.error("Failed to fetch reports:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadLogs();
+  }, [fromDate, toDate, isAllTime]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -61,27 +46,12 @@ export default function GenerateReportsPage() {
   }, []);
 
   useEffect(() => {
-    if (tableRef.current) {
+    if (tableRef.current && !loading) {
       animateTableRows(tableRef.current);
     }
-  }, [reportType]);
+  }, [logs, loading]);
 
-  // Table Headers helper based on selected report category
-  const getTableHeaders = () => {
-    if (reportType === 'Audit-ready transaction report') {
-      return ['Reference #', 'Member', 'Date Logged', 'Amount'];
-    }
-    if (reportType === 'Assistance disbursement report') {
-      return ['Member', 'Assistance Category', 'Disbursement Status', 'Total Amount'];
-    }
-    if (reportType === 'Paid & Remitted Member Contributions') {
-      return ['Faculty Member', 'College / Dept', 'Remittance Status', 'Total Remitted'];
-    }
-    if (reportType === 'Outstanding / Unremitted Dues Summary') {
-      return ['Faculty Member', 'College / Dept', 'Outstanding Status', 'Unremitted Balance'];
-    }
-    return ['Faculty Member', 'Category / Dept', 'Record Count / Status', 'Running Total'];
-  };
+  const headers = ['Reference #', 'Faculty Member', 'Payment Type', 'Verified Timestamp', 'Amount'];
 
   // File Export Handler
   const handleExport = (e) => {
@@ -89,8 +59,9 @@ export default function GenerateReportsPage() {
     setIsExporting(true);
 
     setTimeout(() => {
-      const headers = getTableHeaders();
       const sanitizeName = reportType.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+      const dateRangeText = isAllTime ? 'All Time' : `${fromDate} to ${toDate}`;
 
       // PDF Export
       if (exportFormat === 'PDF') {
@@ -120,7 +91,7 @@ export default function GenerateReportsPage() {
                 <div class="subtitle">ISPSC Tagudin Federated Faculty Union • ${reportType}</div>
               </div>
               <div class="meta">
-                <strong>Date Range:</strong> ${fromDate} to ${toDate} &nbsp;|&nbsp;
+                <strong>Date Range:</strong> ${dateRangeText} &nbsp;|&nbsp;
                 <strong>Generated On:</strong> ${new Date().toLocaleString()}
               </div>
               <table>
@@ -128,12 +99,13 @@ export default function GenerateReportsPage() {
                   <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
                 </thead>
                 <tbody>
-                  ${currentRows.map(r => `
+                  ${logs.map(r => `
                     <tr>
-                      <td><strong>${r.col1}</strong></td>
-                      <td>${r.col2}</td>
-                      <td>${r.col3}</td>
-                      <td><strong>${r.col4}</strong></td>
+                      <td><strong>${r.reference_no}</strong></td>
+                      <td>${r.faculty_name}<br/><small>${r.department}</small></td>
+                      <td>${r.type}</td>
+                      <td>${r.timestamp}</td>
+                      <td><strong>${r.amount}</strong></td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -150,18 +122,19 @@ export default function GenerateReportsPage() {
         return;
       }
 
-      // CSV & Excel Export
+      // CSV Export (also used for Excel)
       const fileHeader = headers.map(h => `"${h}"`);
-      const fileRows = currentRows.map(r => [
-        `"${r.col1.replace(/"/g, '""')}"`,
-        `"${r.col2.replace(/"/g, '""')}"`,
-        `"${r.col3.replace(/"/g, '""')}"`,
-        `"${r.col4.replace(/"/g, '""')}"`
+      const fileRows = logs.map(r => [
+        `"${r.reference_no}"`,
+        `"${r.faculty_name}"`,
+        `"${r.type}"`,
+        `"${r.timestamp}"`,
+        `"${r.amount}"`
       ]);
 
       const csvText = [
         `"U.C.A.R.E. REPORT: ${reportType.toUpperCase()}"`,
-        `"Date Range: ${fromDate} to ${toDate}"`,
+        `"Date Range: ${dateRangeText}"`,
         `"Generated On: ${new Date().toLocaleString()}"`,
         '',
         fileHeader.join(','),
@@ -169,7 +142,7 @@ export default function GenerateReportsPage() {
       ].join('\r\n');
 
       const bomCsvContent = '\uFEFF' + csvText;
-      const fileExt = 'csv';
+      const fileExt = exportFormat === 'Excel' ? 'csv' : 'csv'; // Using CSV format for Excel
       const blob = new Blob([bomCsvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       
@@ -190,8 +163,8 @@ export default function GenerateReportsPage() {
       {/* Page Header */}
       <div className="dashboard-header">
         <div className="dashboard-header-text">
-          <h1>Generate reports</h1>
-          <p>Export financial summaries, paid &amp; remitted contributions, assistance disbursements, and audit logs</p>
+          <h1>Generate reports / Logs</h1>
+          <p>View and export timestamped logs of all verified payment transactions</p>
         </div>
       </div>
 
@@ -210,12 +183,8 @@ export default function GenerateReportsPage() {
               value={reportType}
               onChange={(e) => setReportType(e.target.value)}
             >
-              <option value="Paid & Remitted Member Contributions">Paid &amp; Remitted Member Contributions</option>
-              <option value="Outstanding / Unremitted Dues Summary">Outstanding / Unremitted Dues Summary</option>
-              <option value="Summary of financial contributions">Summary of financial contributions</option>
-              <option value="Assistance disbursement report">Assistance disbursement report</option>
-              <option value="Audit-ready transaction report">Audit-ready transaction report</option>
-              <option value="Member contribution report">Member contribution report</option>
+              <option value="Verified Payments Log">Verified Payments Log</option>
+              {/* Additional reports (like Excel integration) can be added here later */}
             </select>
           </div>
 
@@ -228,30 +197,46 @@ export default function GenerateReportsPage() {
               onChange={(e) => setExportFormat(e.target.value)}
             >
               <option value="CSV">CSV (.csv)</option>
-              <option value="Excel">Excel Spreadsheet (.xlsx)</option>
+              <option value="Excel">Excel Spreadsheet (.csv)</option>
               <option value="PDF">PDF Document (.pdf)</option>
             </select>
           </div>
 
+          {/* All Time Checkbox */}
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: '1 / -1', paddingBottom: '8px' }}>
+            <input 
+              type="checkbox" 
+              id="allTime" 
+              checked={isAllTime}
+              onChange={(e) => setIsAllTime(e.target.checked)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            <label htmlFor="allTime" style={{ margin: 0, cursor: 'pointer', fontWeight: 'bold', color: 'var(--text-main)' }}>
+              Show All Time (Ignore Date Range)
+            </label>
+          </div>
+
           {/* Date From */}
-          <div className="form-group">
+          <div className="form-group" style={{ opacity: isAllTime ? 0.5 : 1 }}>
             <label>From Date</label>
             <input 
               type="date" 
               className="form-input" 
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
+              disabled={isAllTime}
             />
           </div>
 
           {/* Date To */}
-          <div className="form-group">
+          <div className="form-group" style={{ opacity: isAllTime ? 0.5 : 1 }}>
             <label>To Date</label>
             <input 
               type="date" 
               className="form-input" 
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
+              disabled={isAllTime}
             />
           </div>
         </div>
@@ -261,7 +246,7 @@ export default function GenerateReportsPage() {
           <button 
             className="btn-primary" 
             onClick={handleExport}
-            disabled={isExporting}
+            disabled={isExporting || loading}
             style={{ height: '44px', padding: '0 28px' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -280,39 +265,47 @@ export default function GenerateReportsPage() {
           <div>
             <h2>Report Output Preview</h2>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Showing records for <strong>"{reportType}"</strong> ({fromDate} to {toDate})
+              Showing records for <strong>"{reportType}"</strong> ({isAllTime ? 'All Time' : `${fromDate} to ${toDate}`})
             </div>
           </div>
         </div>
 
         <div className="table-responsive">
-          <table className="data-table" ref={tableRef}>
-            <thead>
-              <tr>
-                {getTableHeaders().map((h, i) => (
-                  <th key={i}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {currentRows.map((row, idx) => (
-                <tr key={idx}>
-                  <td><strong style={{ color: 'var(--text-main)' }}>{row.col1}</strong></td>
-                  <td>{row.col2}</td>
-                  <td>
-                    {row.col3.includes('Remitted') ? (
-                      <span className="status-tag approved">{row.col3}</span>
-                    ) : row.col3.includes('Unremitted') ? (
-                      <span className="status-tag pending">{row.col3}</span>
-                    ) : (
-                      row.col3
-                    )}
-                  </td>
-                  <td><span className="amount-text">{row.col4}</span></td>
+          {loading ? (
+             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+               ⏳ Fetching logs from database...
+             </div>
+          ) : (
+            <table className="data-table" ref={tableRef}>
+              <thead>
+                <tr>
+                  {headers.map((h, i) => (
+                    <th key={i}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {logs.length > 0 ? logs.map((row, idx) => (
+                  <tr key={idx}>
+                    <td><span className="ref-code">{row.reference_no}</span></td>
+                    <td>
+                      <strong style={{ color: 'var(--text-main)' }}>{row.faculty_name}</strong>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{row.department}</div>
+                    </td>
+                    <td>{row.type}</td>
+                    <td><span style={{ fontSize: '0.85rem' }}>{row.timestamp}</span></td>
+                    <td><span className="amount-text">{row.amount}</span></td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                      No verified payments found for this date range.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
