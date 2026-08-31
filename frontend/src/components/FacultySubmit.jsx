@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { sendNotify } from '../api';
 
 export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
   const [activeToggle, setActiveToggle] = useState('Proof of payment');
@@ -88,21 +89,16 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const facultyName = currentUser?.name || 'Prof. Maria Santos';
-    const userInitials = facultyName
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2) || 'FM';
+    const facultyName = currentUser?.name || 'Faculty Member';
+    const userInitials = facultyName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || 'FM';
 
-    setTimeout(() => {
+    try {
       if (activeToggle === 'Assistance request') {
-        // 1. Save Assistance Benefit Request for Admin Approve Benefit Requests Page
+        // ── Assistance request: still uses localStorage for now ──────────────
         const newRequest = {
           id: Date.now(),
           memberName: facultyName,
@@ -113,52 +109,74 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
           status: 'Pending',
           attachment: uploadedFile ? uploadedFile.name : 'Application_Document.pdf',
           attachmentUrl: filePreviewUrl || '/assets/login-bg.jpg',
-          notes: reasonText.trim() || 'Faculty submitted assistance application'
+          notes: reasonText.trim() || 'Faculty submitted assistance application',
         };
 
         const existingStr = localStorage.getItem('ucare_benefit_requests');
         let existingRequests = initialBenefitRequests;
         if (existingStr) {
-          try {
-            existingRequests = JSON.parse(existingStr);
-          } catch (err) {
-            existingRequests = initialBenefitRequests;
-          }
+          try { existingRequests = JSON.parse(existingStr); } catch { existingRequests = initialBenefitRequests; }
         }
-
-        const updatedRequests = [newRequest, ...existingRequests];
-        localStorage.setItem('ucare_benefit_requests', JSON.stringify(updatedRequests));
+        localStorage.setItem('ucare_benefit_requests', JSON.stringify([newRequest, ...existingRequests]));
         window.dispatchEvent(new Event('ucare_requests_updated'));
 
+        // Notify admins
+        sendNotify({
+          type:       'benefit_requested',
+          title:      '📋 New Benefit Request Filed',
+          message:    `${facultyName} filed a ${categoryType} request (₱${parseFloat(amountVal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}) pending review.`,
+          action_tab: 'Approve Benefit Requests',
+        }).catch(() => {});
+
         alert(`Success! Your assistance request for ${categoryType} (₱${amountVal}) has been submitted for admin approval.`);
+
       } else {
-        // 2. Save Payment Remittance for Admin Manage Payments Verification Page
-        const newPayment = {
-          id: Date.now(),
-          member: facultyName,
-          avatar: userInitials,
-          type: categoryType === 'Monthly Contribution Dues' ? 'Contribution' : categoryType,
-          refNo: reasonText.trim() || `REF-2026-0${Math.floor(100 + Math.random() * 900)}`,
-          status: 'To verify',
-          amount: `₱ ${parseFloat(amountVal || 500).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          proofUrl: filePreviewUrl || '/assets/login-bg.jpg',
-          notes: reasonText || 'Faculty remitted proof of payment'
-        };
+        // ── Proof of payment: save to real database via API ──────────────────
+        const token = localStorage.getItem('ucare_token');
 
-        const existingPayments = JSON.parse(localStorage.getItem('ucare_submitted_payments') || '[]');
-        localStorage.setItem('ucare_submitted_payments', JSON.stringify([newPayment, ...existingPayments]));
+        // Use FormData so the proof image file can be uploaded
+        const form = new FormData();
+        form.append('amount',         amountVal || '0');
+        form.append('payment_method', categoryType);
+        form.append('reference_no',   reasonText.trim() || '');
+        form.append('payment_date',   new Date().toISOString().split('T')[0]);
+        if (uploadedFile) {
+          form.append('proof_image', uploadedFile);
+        }
 
-        alert(`Success! Your proof of payment (₱${amountVal}) has been submitted for admin verification.`);
+        const response = await fetch('/api/faculty/submit-payment', {
+          method:  'POST',
+          headers: {
+            'Accept':        'application/json',
+            'Authorization': token ? `Bearer ${token}` : '',
+          },
+          body: form,
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          const msg = data?.message || 'Submission failed. Please try again.';
+          alert(`Error: ${msg}`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        alert(`Success! Your proof of payment (₱${amountVal}) has been submitted and is now visible to the admin for verification.`);
       }
 
-      setIsSubmitting(false);
+      // Reset form
       setReasonText('');
       setAmountVal('');
       setUploadedFile(null);
       setFilePreviewUrl(null);
       if (onSubmitSuccess) onSubmitSuccess();
-    }, 500);
+
+    } catch (err) {
+      alert('Could not connect to the server. Please make sure the backend is running.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

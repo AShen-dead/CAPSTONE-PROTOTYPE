@@ -72,3 +72,54 @@ export async function login(email, password) {
 export async function logout() {
   return apiFetch('/auth/logout', { method: 'POST' });
 }
+
+/**
+ * GET /api/dashboard
+ * Returns all stats for the admin home page.
+ */
+export function fetchDashboard() {
+  return apiFetch('/dashboard');
+}
+
+/**
+ * POST /api/notify
+ * Sends a real-time notification. Faculty → all admins. Admin → specific user.
+ * @param {{ type, title, message, action_tab, user_id? }} payload
+ */
+export function sendNotify(payload) {
+  return apiFetch('/notify', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Notification API helpers ──────────────────────────────────
+
+/**
+ * GET /api/notifications
+ * Returns { data: [...], unread_count: N }
+ */
+export function fetchNotifications() {
+  return apiFetch('/notifications');
+}
+
+/**
+ * PATCH /api/notifications/{id}/read
+ */
+export function markNotificationRead(id) {
+  return apiFetch(`/notifications/${id}/read`, { method: 'PATCH' });
+}
+
+/**
+ * PATCH /api/notifications/read-all
+ */
+export function markAllNotificationsRead() {
+  return apiFetch('/notifications/read-all', { method: 'PATCH' });
+}
+
+/**
+ * DELETE /api/notifications/{id}
+ */
+export function deleteNotification(id) {
+  return apiFetch(`/notifications/${id}`, { method: 'DELETE' });
+}

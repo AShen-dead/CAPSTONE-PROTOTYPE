@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { fetchDashboard } from './api';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import StatCard from './components/StatCard';
@@ -16,21 +17,64 @@ import './App.css';
 
 function AdminHomeContent({ onNavigate }) {
   const containerRef = useRef(null);
-  const panelsRef = useRef(null);
+  const panelsRef    = useRef(null);
 
-  // Dynamic charts data
-  const totalContributionsData = [120000, 135000, 140000, 142000, 148000, 155000];
-  const monthlyContributionsData = [18000, 22000, 21000, 25000, 27000, 32000];
-  const chartLabels = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  const [dash,    setDash]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
 
   useEffect(() => {
-    if (containerRef.current) {
-      animatePageEntrance(containerRef.current);
-    }
-    if (panelsRef.current) {
-      animateStatCards(panelsRef.current);
-    }
+    fetchDashboard()
+      .then(data => setDash(data))
+      .catch(() => setError('Could not load dashboard data.'))
+      .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!loading && containerRef.current) animatePageEntrance(containerRef.current);
+    if (!loading && panelsRef.current)    animateStatCards(panelsRef.current);
+  }, [loading]);
+
+  // ── Derive chart/stat values from API response ──────────────
+  const totalContributions     = dash?.total_contributions      ?? 0;
+  const thisMonthContributions = dash?.this_month_contributions ?? 0;
+  const currentMonthLabel      = dash?.current_month_label      ?? '';
+  const cumulativeData         = dash?.cumulative_chart?.data   ?? [0, 0, 0, 0, 0, 0];
+  const cumulativeLabels       = dash?.cumulative_chart?.labels ?? ['','','','','',''];
+  const monthlyData            = dash?.monthly_chart?.data      ?? [0, 0, 0, 0, 0, 0];
+  const monthlyLabels          = dash?.monthly_chart?.labels    ?? ['','','','','',''];
+
+  const formatPHP = (val) =>
+    '₱ ' + Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+
+  if (loading) {
+    return (
+      <main className="main-content">
+        <div className="dashboard-header">
+          <div className="dashboard-header-text">
+            <h1>Secretary-Admin Dashboard</h1>
+            <p>Loading data…</p>
+          </div>
+        </div>
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          ⏳ Fetching live data from the database…
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="main-content">
+        <div className="dashboard-header">
+          <div className="dashboard-header-text">
+            <h1>Secretary-Admin Dashboard</h1>
+            <p style={{ color: '#DC2626' }}>{error}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="main-content" ref={containerRef}>
@@ -44,25 +88,32 @@ function AdminHomeContent({ onNavigate }) {
       <div className="top-panels-grid" ref={panelsRef}>
         <StatCard
           headerTitle="TOTAL CONTRIBUTIONS"
-          value="₱ 1,482,500.00"
+          value={formatPHP(totalContributions)}
           subtitle="All-time overall collected funds"
           chartType="bar"
-          data={totalContributionsData}
-          labels={chartLabels}
+          data={cumulativeData}
+          labels={cumulativeLabels}
         />
         <StatCard
           headerTitle="CONTRIBUTION THIS MONTH"
-          value="₱ 145,800.00"
-          subtitle="July 2026 faculty union contribution activity"
+          value={formatPHP(thisMonthContributions)}
+          subtitle={`${currentMonthLabel} faculty union contribution activity`}
           chartType="area"
           isMainFocus={true}
-          data={monthlyContributionsData}
-          labels={chartLabels}
+          data={monthlyData}
+          labels={monthlyLabels}
         />
-        <PendingBenefitsCard onNavigate={onNavigate} />
+        <PendingBenefitsCard
+          mostRecent={dash?.most_recent_request ?? null}
+          recentList={dash?.recent_requests ?? []}
+          onNavigate={onNavigate}
+        />
       </div>
 
-      <RecentPaymentsTable onNavigate={onNavigate} />
+      <RecentPaymentsTable
+        payments={dash?.recent_payments ?? []}
+        onNavigate={onNavigate}
+      />
     </main>
   );
 }

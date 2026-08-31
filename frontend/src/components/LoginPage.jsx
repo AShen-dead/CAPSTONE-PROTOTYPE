@@ -21,26 +21,35 @@ function LoginPage({ onLoginSuccess, onLogin }) {
     }
   };
 
-  const handleQuickFill = (demoEmail, demoRole) => {
+  const handleQuickFill = async (demoEmail, demoRole) => {
     setEmail(demoEmail);
     setPassword('password');
     setError('');
+    setLoading(true);
 
-    // Instant offline prototype demo login handler
-    const demoUser = demoRole === 'faculty' ? {
-      id: 2,
-      name: 'Prof. Maria Santos',
-      email: demoEmail,
-      role: 'faculty'
-    } : {
-      id: 1,
-      name: 'Sec. Administrator',
-      email: demoEmail,
-      role: 'admin'
-    };
-
-    setAuth('demo_token_' + Date.now(), demoUser);
-    triggerLoginSuccess(demoUser);
+    try {
+      // Attempt a real API login with the demo credentials
+      const response = await login(demoEmail, 'password');
+      setAuth(response.token, response.user);
+      triggerLoginSuccess(response.user);
+    } catch (err) {
+      // Backend unreachable — fall back to offline demo mode
+      const demoUser = demoRole === 'faculty' ? {
+        id: 2,
+        name: 'Prof. Maria Santos',
+        email: demoEmail,
+        role: 'faculty'
+      } : {
+        id: 1,
+        name: 'Sec. Administrator',
+        email: demoEmail,
+        role: 'admin'
+      };
+      setAuth('demo_token_' + Date.now(), demoUser);
+      triggerLoginSuccess(demoUser);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -66,22 +75,7 @@ function LoginPage({ onLoginSuccess, onLogin }) {
           : 'Validation error. Please check your input.';
         setError(messages);
       } else {
-        // Fallback for local prototype preview when Laravel server is offline
-        const isFaculty = email.toLowerCase().includes('faculty');
-        const demoUser = isFaculty ? {
-          id: 2,
-          name: 'Prof. Maria Santos',
-          email: email,
-          role: 'faculty'
-        } : {
-          id: 1,
-          name: 'Sec. Administrator',
-          email: email,
-          role: 'admin'
-        };
-
-        setAuth('demo_token_' + Date.now(), demoUser);
-        triggerLoginSuccess(demoUser);
+        setError('Unable to connect to the server. Please make sure the backend is running.');
       }
     } finally {
       setLoading(false);

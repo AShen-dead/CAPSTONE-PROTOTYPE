@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\UserRegisteredNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,16 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'role'     => $validated['role'] ?? 'faculty',
         ]);
+
+        // Notify all admins about the new registration
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new UserRegisteredNotification(
+                name:   $user->name,
+                email:  $user->email,
+                userId: $user->id,
+            ));
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

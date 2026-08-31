@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { animateNotificationDropdown, animateButtonPress, animateModalOpen, animateModalClose } from '../utils/animations';
+import {
+  fetchNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '../api';
 
 // =========================================================================
 // OFFICIAL U.C.A.R.E. LOGO PICTURE PATH
 // =========================================================================
 const LOGO_IMAGE_PATH = "/assets/ucare-logo.jpg";
+
+const POLL_INTERVAL_MS = 30_000; // poll every 30 seconds
 
 export default function Navbar({
   logoUrl,
@@ -18,77 +25,37 @@ export default function Navbar({
   onNavigate,
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showSignOutModal,  setShowSignOutModal]  = useState(false);
+  const [notifications,     setNotifications]     = useState([]);
+  const [loadingNotifs,     setLoadingNotifs]     = useState(false);
 
-  const dropdownRef = useRef(null);
-  const signOutModalRef = useRef(null);
-  const signOutOverlayRef = useRef(null);
-
-  // Notifications highlighting unpaid dues, due dates, and pending verification
-  const isFaculty = userRole.toLowerCase().includes('faculty') && !userRole.toLowerCase().includes('admin');
-
-  const [notifications, setNotifications] = useState(
-    isFaculty ? [
-      {
-        id: 1,
-        type: 'unpaid',
-        title: '⚠️ Unpaid Monthly Dues',
-        message: 'Monthly Union Contribution for August 2026 (₱500.00) is UNPAID.',
-        date: '2 hours ago',
-        unread: true,
-        actionTab: 'Submit Application / Receipt'
-      },
-      {
-        id: 2,
-        type: 'due',
-        title: '💳 Upcoming Assessment Due',
-        message: 'Special Assistance Fund Assessment (₱300.00) is due on Aug 30, 2026.',
-        date: '1 day ago',
-        unread: true,
-        actionTab: 'Submit Application / Receipt'
-      },
-      {
-        id: 3,
-        type: 'pending',
-        title: '⌛ Proof Under Verification',
-        message: 'Your proof of payment (REF-2026-0904 - ₱1,500.00) is pending admin verification.',
-        date: '2 days ago',
-        unread: true,
-        actionTab: 'Payment History'
-      }
-    ] : [
-      {
-        id: 101,
-        type: 'verification',
-        title: '📋 3 Payments Pending Verification',
-        message: 'Prof. Maria Santos & 2 others submitted proof of payment receipts requiring verification.',
-        date: '10 mins ago',
-        unread: true,
-        actionTab: 'Manage Payments'
-      },
-      {
-        id: 102,
-        type: 'unpaid_summary',
-        title: '⚠️ Unpaid Faculty Member Alert',
-        message: '8 faculty members have outstanding/unpaid union dues for August 2026.',
-        date: '3 hours ago',
-        unread: true,
-        actionTab: 'Manage Members'
-      },
-      {
-        id: 103,
-        type: 'benefit',
-        title: '🏥 Benefit Request Pending Review',
-        message: 'Medical assistance claim (₱15,000.00) from Engr. Roberto Garcia requires approval.',
-        date: '5 hours ago',
-        unread: true,
-        actionTab: 'Approve Benefit Requests'
-      }
-    ]
-  );
+  const dropdownRef      = useRef(null);
+  const signOutModalRef  = useRef(null);
+  const signOutOverlayRef= useRef(null);
+  const pollRef          = useRef(null);
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
+  // ── Fetch notifications from API ──────────────────────────────
+  const loadNotifications = useCallback(async () => {
+    try {
+      const res = await fetchNotifications();
+      setNotifications(res?.data ?? []);
+    } catch {
+      // Silently fail — don't break the navbar if API is unreachable
+    }
+  }, []);
+
+  // Load on mount, then poll every 30s
+  useEffect(() => {
+    setLoadingNotifs(true);
+    loadNotifications().finally(() => setLoadingNotifs(false));
+
+    pollRef.current = setInterval(loadNotifications, POLL_INTERVAL_MS);
+    return () => clearInterval(pollRef.current);
+  }, [loadNotifications]);
+
+  // Animate dropdown when opened
   useEffect(() => {
     if (showNotifications && dropdownRef.current) {
       animateNotificationDropdown(dropdownRef.current);
@@ -101,6 +68,7 @@ export default function Navbar({
     }
   }, [showSignOutModal]);
 
+  // ── Handlers ─────────────────────────────────────────────────
   const handleCloseSignOutModal = () => {
     if (signOutModalRef.current) {
       animateModalClose(signOutModalRef.current, signOutOverlayRef.current, () => setShowSignOutModal(false));
@@ -120,18 +88,39 @@ export default function Navbar({
     }
   };
 
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, unread: false })));
-  };
-
-  const handleNotificationClick = (notif) => {
-    setNotifications(notifications.map(n => n.id === notif.id ? { ...n, unread: false } : n));
-    setShowNotifications(false);
-    if (onNavigate && notif.actionTab) {
-      onNavigate(notif.actionTab);
+  const handleMarkAllRead = async () => {
+    // Optimistically update UI
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+    try {
+      await markAllNotificationsRead();
+    } catch {
+      // Reload to sync actual state on failure
+      loadNotifications();
     }
   };
 
+  const handleNotificationClick = async (notif) => {
+    // Optimistically mark as read in UI
+    setNotifications(prev =>
+      prev.map(n => n.id === notif.id ? { ...n, unread: false } : n)
+    );
+    setShowNotifications(false);
+
+    // Persist to DB
+    if (notif.unread) {
+      try {
+        await markNotificationRead(notif.id);
+      } catch {
+        // Non-critical — ignore
+      }
+    }
+
+    if (onNavigate && notif.action_tab) {
+      onNavigate(notif.action_tab);
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────
   return (
     <>
       <header className="top-navbar">
@@ -156,33 +145,31 @@ export default function Navbar({
         {/* Left: Brand Logo & Title */}
         <div className="nav-brand">
           <div className="brand-logo-container">
-            <img 
-              src={logoUrl || LOGO_IMAGE_PATH} 
-              alt="U.C.A.R.E. Official Logo" 
+            <img
+              src={logoUrl || LOGO_IMAGE_PATH}
+              alt="U.C.A.R.E. Official Logo"
               className="brand-logo-img"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
+              onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
-
           <div className="brand-info">
             <span className="brand-title">{systemTitle}</span>
             <span className="brand-subtitle">{systemSubtitle}</span>
           </div>
         </div>
 
-        {/* Right: Notification Bell Dropdown, Role Badge, Profile & Logout */}
+        {/* Right: Notification Bell, Role Badge, Profile & Logout */}
         <div className="nav-user">
-          {/* Notification Bell with Unpaid Dues Dropdown Menu */}
+
+          {/* Notification Bell */}
           <div className="notification-dropdown-container" style={{ position: 'relative' }}>
-            <button 
-              className="nav-icon-btn" 
-              title="Unpaid Dues & System Notifications" 
+            <button
+              className="nav-icon-btn"
+              title="Notifications"
               aria-label="Notifications"
               onClick={(e) => {
                 animateButtonPress(e.currentTarget);
-                setShowNotifications(!showNotifications);
+                setShowNotifications(v => !v);
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -190,38 +177,37 @@ export default function Navbar({
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
               {unreadCount > 0 && (
-                <span className="notification-badge-count">
-                  {unreadCount}
-                </span>
+                <span className="notification-badge-count">{unreadCount}</span>
               )}
             </button>
 
-            {/* Interactive Notifications Panel */}
+            {/* Notifications Panel */}
             {showNotifications && (
               <div className="notification-dropdown-menu" ref={dropdownRef}>
                 <div className="notification-header">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontWeight: '800', color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                      Notifications &amp; Unpaid Dues
+                      Notifications
                     </span>
                     {unreadCount > 0 && (
                       <span className="notif-count-pill">{unreadCount} New</span>
                     )}
                   </div>
                   {unreadCount > 0 && (
-                    <button 
-                      className="notif-mark-read-btn"
-                      onClick={handleMarkAllRead}
-                    >
+                    <button className="notif-mark-read-btn" onClick={handleMarkAllRead}>
                       Mark all read
                     </button>
                   )}
                 </div>
 
                 <div className="notification-list">
-                  {notifications.length > 0 ? (
+                  {loadingNotifs ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                      Loading…
+                    </div>
+                  ) : notifications.length > 0 ? (
                     notifications.map((n) => (
-                      <div 
+                      <div
                         key={n.id}
                         className={`notification-item ${n.unread ? 'notification-item--unread' : ''}`}
                         onClick={() => handleNotificationClick(n)}
@@ -231,7 +217,7 @@ export default function Navbar({
                           <span className="notif-item-date">{n.date}</span>
                         </div>
                         <p className="notif-item-msg">{n.message}</p>
-                        {n.actionTab && (
+                        {n.action_tab && (
                           <div className="notif-item-action">
                             <span>Click to resolve ➔</span>
                           </div>
@@ -291,9 +277,9 @@ export default function Navbar({
         </div>
       </header>
 
-      {/* ───────────────────────────────────────────────────────────────────
-         SIGN OUT CONFIRMATION MODAL (Both Admin & Faculty Panels)
-         ─────────────────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────────────────
+         SIGN OUT CONFIRMATION MODAL
+         ───────────────────────────────────────────────────────────────── */}
       {showSignOutModal && (
         <div className="modal-overlay" ref={signOutOverlayRef}>
           <div className="modal-content" ref={signOutModalRef} style={{ maxWidth: '440px' }}>
@@ -307,16 +293,10 @@ export default function Navbar({
 
             <div className="modal-body-form" style={{ padding: '24px', gap: '18px', textAlign: 'center' }}>
               <div style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: '#FEF2F2',
-                border: '1px solid #FCA5A5',
-                color: '#DC2626',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto'
+                width: '56px', height: '56px', borderRadius: '50%',
+                backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5',
+                color: '#DC2626', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', margin: '0 auto'
               }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -335,24 +315,11 @@ export default function Navbar({
               </div>
 
               <div className="modal-actions" style={{ justifyContent: 'center', gap: '14px', marginTop: '6px' }}>
-                <button 
-                  type="button" 
-                  className="btn-secondary"
-                  onClick={handleCloseSignOutModal}
-                  style={{ minWidth: '120px' }}
-                >
+                <button type="button" className="btn-secondary" onClick={handleCloseSignOutModal} style={{ minWidth: '120px' }}>
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  className="btn-primary"
-                  onClick={handleConfirmLogout}
-                  style={{ 
-                    minWidth: '130px',
-                    background: 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)',
-                    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)' 
-                  }}
-                >
+                <button type="button" className="btn-primary" onClick={handleConfirmLogout}
+                  style={{ minWidth: '130px', background: 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)', boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)' }}>
                   Yes, Sign Out
                 </button>
               </div>

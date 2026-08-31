@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BenefitDocument;
 use App\Models\BenefitRequest;
+use App\Models\User;
+use App\Notifications\BenefitRequestedNotification;
+use App\Notifications\BenefitRequestDecidedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +37,8 @@ class BenefitRequestController extends Controller
     }
 
     /**
-     * Submit a new benefit request, optionally uploading supporting documents.
+     * Submit a new benefit request.
+     * Notifies all admin users.
      */
     public function store(Request $request): JsonResponse
     {
@@ -69,6 +73,23 @@ class BenefitRequestController extends Controller
             return $benefitRequest->load(['facultyMember', 'benefitType', 'documents']);
         });
 
+        // Notify all admins about the new benefit request
+        $facultyName = $result->facultyMember
+            ? trim("{$result->facultyMember->first_name} {$result->facultyMember->last_name}")
+            : 'A faculty member';
+        $benefitTypeName = $result->benefitType->name ?? 'Benefit';
+        $amount          = (float) ($result->amount_requested ?? 0);
+
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new BenefitRequestedNotification(
+                facultyName: $facultyName,
+                benefitType: $benefitTypeName,
+                amount:      $amount,
+                requestId:   $result->id,
+            ));
+        }
+
         return response()->json(['data' => $result], 201);
     }
 
@@ -83,10 +104,13 @@ class BenefitRequestController extends Controller
     }
 
     /**
-     * Update a benefit request (faculty can update while still Pending).
+     * Update a benefit request.
+     * If status changed to Approved/Declined, notifies the faculty member.
      */
     public function update(Request $request, BenefitRequest $benefitRequest): JsonResponse
     {
+        $oldStatus = strtolower($benefitRequest->status ?? '');
+
         $validated = $request->validate([
             'benefit_type_id'  => ['sometimes', 'exists:benefit_types,id'],
             'amount_requested' => ['nullable', 'numeric', 'min:0'],
@@ -95,14 +119,30 @@ class BenefitRequestController extends Controller
         ]);
 
         $benefitRequest->update($validated);
+        $fresh     = $benefitRequest->fresh()->load(['facultyMember', 'benefitType', 'documents', 'approvedBy']);
+        $newStatus = strtolower($fresh->status ?? '');
 
-        return response()->json([
-            'data' => $benefitRequest->fresh()->load(['facultyMember', 'benefitType', 'documents', 'approvedBy']),
-        ]);
+        // Notify faculty member if admin just made a decision
+        $decidedStatuses = ['approved', 'declined', 'rejected'];
+        if (
+            in_array($newStatus, $decidedStatuses) &&
+            ! in_array($oldStatus, $decidedStatuses) &&
+            $fresh->facultyMember?->user
+        ) {
+            $fresh->facultyMember->user->notify(new BenefitRequestDecidedNotification(
+                status:      ucfirst($fresh->status),
+                benefitType: $fresh->benefitType->name ?? 'Benefit',
+                amount:      (float) ($fresh->amount_requested ?? 0),
+                requestId:   $fresh->id,
+            ));
+        }
+
+        return response()->json(['data' => $fresh]);
     }
 
     /**
      * Approve or reject a benefit request. Admin only.
+     * Notifies the requesting faculty member of the decision.
      */
     public function approve(Request $request, BenefitRequest $benefitRequest): JsonResponse
     {
@@ -122,9 +162,19 @@ class BenefitRequestController extends Controller
             'approved_date' => now(),
         ]);
 
-        return response()->json([
-            'data' => $benefitRequest->fresh()->load(['facultyMember', 'benefitType', 'approvedBy']),
-        ]);
+        $fresh = $benefitRequest->fresh()->load(['facultyMember', 'benefitType', 'approvedBy']);
+
+        // Notify the faculty member of the admin's decision
+        if ($fresh->facultyMember?->user) {
+            $fresh->facultyMember->user->notify(new BenefitRequestDecidedNotification(
+                status:      $validated['status'],
+                benefitType: $fresh->benefitType->name ?? 'Benefit',
+                amount:      (float) ($fresh->amount_requested ?? 0),
+                requestId:   $fresh->id,
+            ));
+        }
+
+        return response()->json(['data' => $fresh]);
     }
 
     /**

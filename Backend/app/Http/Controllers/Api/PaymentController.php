@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\PaymentProof;
+use App\Models\User;
+use App\Notifications\PaymentSubmittedNotification;
+use App\Notifications\PaymentVerifiedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,18 +38,19 @@ class PaymentController extends Controller
 
     /**
      * Record a new payment, optionally with a proof image upload.
+     * Notifies all admin users.
      */
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'faculty_id'     => ['required', 'exists:faculty_members,id'],
-            'contribution_id'=> ['required', 'exists:contributions,id'],
-            'payment_date'   => ['required', 'date'],
-            'amount'         => ['required', 'numeric', 'min:0'],
-            'payment_method' => ['nullable', 'string', 'max:100'],
-            'reference_no'   => ['nullable', 'string', 'max:100'],
-            'status'         => ['nullable', 'string', 'max:50'],
-            'proof_image'    => ['nullable', 'file', 'image', 'max:5120'],
+            'faculty_id'      => ['required', 'exists:faculty_members,id'],
+            'contribution_id' => ['required', 'exists:contributions,id'],
+            'payment_date'    => ['required', 'date'],
+            'amount'          => ['required', 'numeric', 'min:0'],
+            'payment_method'  => ['nullable', 'string', 'max:100'],
+            'reference_no'    => ['nullable', 'string', 'max:100'],
+            'status'          => ['nullable', 'string', 'max:50'],
+            'proof_image'     => ['nullable', 'file', 'image', 'max:5120'],
         ]);
 
         $result = DB::transaction(function () use ($validated, $request) {
@@ -72,6 +76,20 @@ class PaymentController extends Controller
             return $payment->load(['facultyMember', 'contribution', 'proof', 'recordedBy']);
         });
 
+        // Notify all admins about the new payment submission
+        $facultyName = $result->facultyMember
+            ? trim("{$result->facultyMember->first_name} {$result->facultyMember->last_name}")
+            : $request->user()->name;
+
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new PaymentSubmittedNotification(
+                facultyName: $facultyName,
+                amount:      (float) $result->amount,
+                paymentId:   $result->id,
+            ));
+        }
+
         return response()->json(['data' => $result], 201);
     }
 
@@ -86,10 +104,13 @@ class PaymentController extends Controller
     }
 
     /**
-     * Update a payment record and optionally replace its proof image.
+     * Update a payment record.
+     * If status changes to Verified/verified, notifies the faculty member.
      */
     public function update(Request $request, Payment $payment): JsonResponse
     {
+        $oldStatus = strtolower($payment->status ?? '');
+
         $validated = $request->validate([
             'payment_date'   => ['sometimes', 'date'],
             'amount'         => ['sometimes', 'numeric', 'min:0'],
@@ -125,9 +146,24 @@ class PaymentController extends Controller
             }
         });
 
-        return response()->json([
-            'data' => $payment->fresh()->load(['facultyMember', 'contribution', 'proof', 'recordedBy']),
-        ]);
+        $fresh     = $payment->fresh()->load(['facultyMember', 'contribution', 'proof', 'recordedBy']);
+        $newStatus = strtolower($fresh->status ?? '');
+
+        // If status just became verified/completed, notify the faculty member
+        $verifiedStatuses = ['verified', 'completed'];
+        if (
+            in_array($newStatus, $verifiedStatuses) &&
+            ! in_array($oldStatus, $verifiedStatuses) &&
+            $fresh->facultyMember?->user
+        ) {
+            $fresh->facultyMember->user->notify(new PaymentVerifiedNotification(
+                amount:      (float) $fresh->amount,
+                referenceNo: $fresh->reference_no ?? '',
+                paymentId:   $fresh->id,
+            ));
+        }
+
+        return response()->json(['data' => $fresh]);
     }
 
     /**
