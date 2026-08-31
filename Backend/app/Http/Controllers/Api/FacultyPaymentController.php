@@ -37,17 +37,19 @@ class FacultyPaymentController extends Controller
         }
 
         $validated = $request->validate([
-            'amount'         => ['required', 'numeric', 'min:1'],
-            'payment_method' => ['nullable', 'string', 'max:100'],
-            'reference_no'   => ['nullable', 'string', 'max:100'],
-            'payment_date'   => ['nullable', 'date'],
-            'proof_image'    => ['nullable', 'file', 'image', 'max:5120'],
+            'amount'          => ['required', 'numeric', 'min:1'],
+            'announcement_id' => ['nullable', 'integer', 'exists:announcements,id'],
+            'payment_method'  => ['nullable', 'string', 'max:100'],
+            'reference_no'    => ['nullable', 'string', 'max:100'],
+            'payment_date'    => ['nullable', 'date'],
+            'proof_image'     => ['nullable', 'file', 'image', 'max:5120'],
         ]);
 
         $result = DB::transaction(function () use ($validated, $request, $user, $facultyMember) {
             $payment = Payment::create([
                 'faculty_id'      => $facultyMember->id,
                 'contribution_id' => null,   // nullable — no contribution required for self-submission
+                'announcement_id' => $validated['announcement_id'] ?? null,
                 'payment_date'    => $validated['payment_date'] ?? now()->toDateString(),
                 'amount'          => $validated['amount'],
                 'payment_method'  => $validated['payment_method'] ?? null,

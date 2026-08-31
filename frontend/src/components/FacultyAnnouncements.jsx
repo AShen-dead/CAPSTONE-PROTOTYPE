@@ -32,7 +32,7 @@ export default function FacultyAnnouncements() {
       <div className="dashboard-header" style={{ marginBottom: '24px' }}>
         <div className="dashboard-header-text">
           <h1>Announcements</h1>
-          <p>Important news and updates from the faculty union</p>
+          <p>Important news, updates, and calls for assistance from the faculty union</p>
         </div>
       </div>
 
@@ -51,9 +51,22 @@ export default function FacultyAnnouncements() {
               background: '#FFFFFF',
               borderRadius: '12px',
               padding: '24px',
-              border: '1px solid #E2E8F0',
+              border: announcement.is_contribution_drive ? '1.5px solid rgba(139, 30, 63, 0.25)' : '1px solid #E2E8F0',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)'
             }}>
+              {announcement.is_contribution_drive && (
+                <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span className="status-tag approved" style={{ fontSize: '0.8rem', padding: '4px 10px' }}>
+                    🤝 Contribution Drive: {announcement.benefit_type || 'Aid'}
+                  </span>
+                  {announcement.beneficiary_name && (
+                    <span style={{ fontSize: '0.85rem', color: 'var(--primary-maroon)', fontWeight: '600' }}>
+                      Beneficiary: {announcement.beneficiary_name}
+                    </span>
+                  )}
+                </div>
+              )}
+
               <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text-main)', margin: '0 0 8px 0' }}>
                 {announcement.title}
               </h2>

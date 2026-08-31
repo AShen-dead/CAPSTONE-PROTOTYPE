@@ -13,6 +13,7 @@ class Payment extends Model
     protected $fillable = [
         'faculty_id',
         'contribution_id',
+        'announcement_id',
         'payment_date',
         'amount',
         'payment_method',
@@ -36,6 +37,11 @@ class Payment extends Model
     public function contribution(): BelongsTo
     {
         return $this->belongsTo(Contribution::class, 'contribution_id');
+    }
+
+    public function announcement(): BelongsTo
+    {
+        return $this->belongsTo(Announcement::class, 'announcement_id');
     }
 
     public function recordedBy(): BelongsTo

@@ -12,6 +12,9 @@ export default function AnnouncementsPage() {
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isContributionDrive, setIsContributionDrive] = useState(false);
+  const [benefitType, setBenefitType] = useState('Death Aid / Mortuary');
+  const [beneficiaryName, setBeneficiaryName] = useState('');
   const [saving, setSaving] = useState(false);
 
   const containerRef = useRef(null);
@@ -54,10 +57,16 @@ export default function AnnouncementsPage() {
       setEditingId(announcement.id);
       setTitle(announcement.title);
       setContent(announcement.content);
+      setIsContributionDrive(Boolean(announcement.is_contribution_drive));
+      setBenefitType(announcement.benefit_type || 'Death Aid / Mortuary');
+      setBeneficiaryName(announcement.beneficiary_name || '');
     } else {
       setEditingId(null);
       setTitle('');
       setContent('');
+      setIsContributionDrive(false);
+      setBenefitType('Death Aid / Mortuary');
+      setBeneficiaryName('');
     }
     setShowModal(true);
   };
@@ -77,11 +86,19 @@ export default function AnnouncementsPage() {
     if (!title.trim() || !content.trim()) return;
     setSaving(true);
     
+    const payload = {
+      title,
+      content,
+      is_contribution_drive: isContributionDrive,
+      benefit_type: isContributionDrive ? benefitType : null,
+      beneficiary_name: isContributionDrive ? beneficiaryName : null,
+    };
+
     try {
       if (editingId) {
-        await updateAnnouncement(editingId, { title, content });
+        await updateAnnouncement(editingId, payload);
       } else {
-        await createAnnouncement({ title, content });
+        await createAnnouncement(payload);
       }
       await loadAnnouncements();
       handleCloseModal();
@@ -107,7 +124,7 @@ export default function AnnouncementsPage() {
       <div className="dashboard-header">
         <div className="dashboard-header-text">
           <h1>Announcements</h1>
-          <p>Broadcast updates and news to all faculty members</p>
+          <p>Broadcast updates and news or announce beneficiary aid contribution drives</p>
         </div>
         <button className="btn-primary" onClick={() => handleOpenModal(null)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -134,23 +151,42 @@ export default function AnnouncementsPage() {
             <table className="data-table" ref={tableRef}>
               <thead>
                 <tr>
-                  <th style={{ width: '25%' }}>Title</th>
-                  <th style={{ width: '45%' }}>Content Preview</th>
-                  <th style={{ width: '15%' }}>Date Posted</th>
-                  <th style={{ width: '15%', textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: '28%' }}>Title</th>
+                  <th style={{ width: '18%' }}>Category / Drive</th>
+                  <th style={{ width: '26%' }}>Content Preview</th>
+                  <th style={{ width: '14%' }}>Date Posted</th>
+                  <th style={{ width: '14%', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {announcements.length > 0 ? (
                   announcements.map((item) => (
                     <tr key={item.id}>
-                      <td><div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{item.title}</div></td>
+                      <td>
+                        <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{item.title}</div>
+                      </td>
+                      <td>
+                        {item.is_contribution_drive ? (
+                          <div>
+                            <span className="status-tag approved" style={{ fontSize: '0.75rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              🤝 {item.benefit_type || 'Aid Drive'}
+                            </span>
+                            {item.beneficiary_name && (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '500' }}>
+                                For: {item.beneficiary_name}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>📢 General News</span>
+                        )}
+                      </td>
                       <td>
                         <div style={{ 
                           whiteSpace: 'nowrap', 
                           overflow: 'hidden', 
                           textOverflow: 'ellipsis', 
-                          maxWidth: '400px',
+                          maxWidth: '300px',
                           color: 'var(--text-muted)',
                           fontSize: '0.875rem'
                         }}>
@@ -172,7 +208,7 @@ export default function AnnouncementsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                       No announcements posted yet.
                     </td>
                   </tr>
@@ -185,7 +221,7 @@ export default function AnnouncementsPage() {
 
       {showModal && (
         <div className="modal-overlay" ref={overlayRef}>
-          <div className="modal-content" ref={modalRef} style={{ maxWidth: '500px' }}>
+          <div className="modal-content" ref={modalRef} style={{ maxWidth: '540px' }}>
             <div className="modal-header">
               <h3>{editingId ? 'Edit Announcement' : 'Create Announcement'}</h3>
               <button className="btn-close-modal" onClick={handleCloseModal}>✕</button>
@@ -196,24 +232,82 @@ export default function AnnouncementsPage() {
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Union General Assembly"
+                  placeholder="e.g. Call for Assistance: Joderick Tejada"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
                 />
               </div>
+
+              {/* Contribution Drive Toggle Box */}
+              <div style={{ 
+                background: isContributionDrive ? 'rgba(139, 30, 63, 0.04)' : '#F8FAFC', 
+                border: isContributionDrive ? '1px solid var(--primary-maroon)' : '1px solid #E2E8F0',
+                borderRadius: '8px', 
+                padding: '14px', 
+                marginBottom: '16px' 
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="checkbox"
+                    id="contribDriveCheck"
+                    checked={isContributionDrive}
+                    onChange={(e) => setIsContributionDrive(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="contribDriveCheck" style={{ margin: 0, cursor: 'pointer', fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                    🤝 This announcement is a Call for Contributions / Beneficiary Aid
+                  </label>
+                </div>
+
+                {isContributionDrive && (
+                  <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.8rem' }}>Beneficiary Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g. Joderick Tejada"
+                        value={beneficiaryName}
+                        onChange={(e) => setBeneficiaryName(e.target.value)}
+                        required={isContributionDrive}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.8rem' }}>Benefit / Aid Type</label>
+                      <select
+                        className="form-select"
+                        value={benefitType}
+                        onChange={(e) => setBenefitType(e.target.value)}
+                      >
+                        <option value="Death Aid / Mortuary">Death Aid / Mortuary</option>
+                        <option value="Medical Assistance">Medical Assistance</option>
+                        <option value="Retirement">Retirement</option>
+                        <option value="Surgical Assistance">Surgical Assistance</option>
+                        <option value="Pabaon">Pabaon</option>
+                        <option value="Seed Money">Seed Money</option>
+                        <option value="Annual Dues">Annual Dues</option>
+                        <option value="Calamity Relief">Calamity Relief</option>
+                        <option value="Special Assessment">Special Assessment</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="form-group">
-                <label>Content</label>
+                <label>Announcement Details</label>
                 <textarea
                   className="form-input"
-                  placeholder="Type the announcement details here..."
+                  placeholder="Provide instructions, background information, or payment guidelines..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  rows="6"
+                  rows="5"
                   required
                   style={{ resize: 'vertical' }}
                 />
               </div>
+
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={saving}>
                   Cancel

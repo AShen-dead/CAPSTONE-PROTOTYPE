@@ -93,10 +93,11 @@ export function fetchFacultyRequests() {
   return apiFetch('/faculty/requests');
 }
 
-export function fetchReports(fromDate, toDate) {
+export function fetchReports(fromDate, toDate, reportType) {
   const params = new URLSearchParams();
   if (fromDate) params.append('from_date', fromDate);
   if (toDate) params.append('to_date', toDate);
+  if (reportType) params.append('report_type', reportType);
   return apiFetch(`/reports?${params.toString()}`);
 }
 
@@ -116,6 +117,10 @@ export function sendNotify(payload) {
 
 export function fetchAnnouncements() {
   return apiFetch('/announcements');
+}
+
+export function fetchContributionDrives() {
+  return apiFetch('/announcements/contribution-drives');
 }
 
 export function createAnnouncement(data) {

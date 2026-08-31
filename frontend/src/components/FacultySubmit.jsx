@@ -1,14 +1,32 @@
-import React, { useState } from 'react';
-import { sendNotify } from '../api';
+import React, { useState, useEffect } from 'react';
+import { sendNotify, fetchContributionDrives } from '../api';
 
 export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
   const [activeToggle, setActiveToggle] = useState('Proof of payment');
   const [categoryType, setCategoryType] = useState('Monthly Contribution Dues');
+  const [selectedDriveId, setSelectedDriveId] = useState('');
+  const [contributionDrives, setContributionDrives] = useState([]);
+  const [loadingDrives, setLoadingDrives] = useState(false);
   const [reasonText, setReasonText] = useState('');
   const [amountVal, setAmountVal] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
   const [filePreviewUrl, setFilePreviewUrl] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadDrives = async () => {
+      setLoadingDrives(true);
+      try {
+        const res = await fetchContributionDrives();
+        setContributionDrives(res?.data || []);
+      } catch (err) {
+        console.error("Failed to load contribution drives", err);
+      } finally {
+        setLoadingDrives(false);
+      }
+    };
+    loadDrives();
+  }, []);
 
   const initialBenefitRequests = [
     {
@@ -32,39 +50,6 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
       status: 'Pending',
       attachment: 'Death_Certificate_Copy.pdf',
       notes: 'Death certificate copy submitted for audit review.'
-    },
-    {
-      id: 3,
-      memberName: 'Prof. Elena Ramos',
-      avatar: 'ER',
-      benefitType: 'Educational Assistance',
-      dateFiled: 'Jul 20, 2026',
-      amountRequested: '₱ 8,500.00',
-      status: 'Pending',
-      attachment: 'Conference_Presentation.pdf',
-      notes: 'International conference paper presentation registration fee.'
-    },
-    {
-      id: 4,
-      memberName: 'Engr. Roberto Garcia',
-      avatar: 'RG',
-      benefitType: 'Calamity Relief',
-      dateFiled: 'Jul 15, 2026',
-      amountRequested: '₱ 10,000.00',
-      status: 'Approved',
-      attachment: 'Calamity_Damage_Photos.pdf',
-      notes: 'Typhoon damage assistance disbursement approved.'
-    },
-    {
-      id: 5,
-      memberName: 'Dr. Clarissa Reyes',
-      avatar: 'CR',
-      benefitType: 'Medical Assistance',
-      dateFiled: 'Jul 10, 2026',
-      amountRequested: '₱ 5,000.00',
-      status: 'Declined',
-      attachment: 'Outpatient_Receipt.pdf',
-      notes: 'Outpatient prescription claim exceeded period cutoff.'
     }
   ];
 
@@ -134,12 +119,26 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
         // ── Proof of payment: save to real database via API ──────────────────
         const token = localStorage.getItem('ucare_token');
 
+        // Determine payment method label
+        let paymentMethodLabel = categoryType;
+        if (selectedDriveId) {
+          const matchedDrive = contributionDrives.find(d => String(d.id) === String(selectedDriveId));
+          if (matchedDrive) {
+            paymentMethodLabel = matchedDrive.beneficiary_name 
+              ? `${matchedDrive.beneficiary_name} (${matchedDrive.benefit_type || 'Aid'})`
+              : matchedDrive.title;
+          }
+        }
+
         // Use FormData so the proof image file can be uploaded
         const form = new FormData();
         form.append('amount',         amountVal || '0');
-        form.append('payment_method', categoryType);
+        form.append('payment_method', paymentMethodLabel);
         form.append('reference_no',   reasonText.trim() || '');
         form.append('payment_date',   new Date().toISOString().split('T')[0]);
+        if (selectedDriveId) {
+          form.append('announcement_id', selectedDriveId);
+        }
         if (uploadedFile) {
           form.append('proof_image', uploadedFile);
         }
@@ -168,6 +167,7 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
       // Reset form
       setReasonText('');
       setAmountVal('');
+      setSelectedDriveId('');
       setUploadedFile(null);
       setFilePreviewUrl(null);
       if (onSubmitSuccess) onSubmitSuccess();
@@ -212,29 +212,49 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* Category Dropdown */}
-          <div className="form-group">
-            <label>{activeToggle === 'Assistance request' ? 'Benefit Category' : 'Payment Type'}</label>
-            <select 
-              className="form-select"
-              value={categoryType}
-              onChange={(e) => setCategoryType(e.target.value)}
-            >
-              {activeToggle === 'Assistance request' ? (
-                <>
-                  <option value="Medical Assistance">Medical Assistance</option>
-                  <option value="Bereavement Assistance">Bereavement Assistance</option>
-                  <option value="Educational Assistance">Educational Assistance</option>
-                  <option value="Calamity Relief">Calamity Relief</option>
-                </>
-              ) : (
-                <>
-                  <option value="Monthly Contribution Dues">Monthly Contribution Dues</option>
-                  <option value="Special Assessment Fee">Special Assessment Fee</option>
-                </>
-              )}
-            </select>
-          </div>
+          
+          {/* Payment Purpose / Contribution Drive Selector */}
+          {activeToggle === 'Proof of payment' ? (
+            <div className="form-group">
+              <label>Payment Purpose / Beneficiary Aid Drive</label>
+              <select 
+                className="form-select"
+                value={selectedDriveId}
+                onChange={(e) => {
+                  setSelectedDriveId(e.target.value);
+                  if (!e.target.value) {
+                    setCategoryType('Monthly Contribution Dues');
+                  }
+                }}
+              >
+                <option value="">-- General / Monthly Contribution Dues --</option>
+                {contributionDrives.map(drive => (
+                  <option key={drive.id} value={drive.id}>
+                    🤝 {drive.beneficiary_name ? `${drive.beneficiary_name} — (${drive.benefit_type || 'Aid'})` : drive.title}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {contributionDrives.length > 0 
+                  ? 'Select an announced beneficiary aid drive if this payment is for specific aid' 
+                  : 'No active contribution drives announced at this time'}
+              </div>
+            </div>
+          ) : (
+            <div className="form-group">
+              <label>Benefit Category</label>
+              <select 
+                className="form-select"
+                value={categoryType}
+                onChange={(e) => setCategoryType(e.target.value)}
+              >
+                <option value="Medical Assistance">Medical Assistance</option>
+                <option value="Bereavement Assistance">Bereavement Assistance</option>
+                <option value="Educational Assistance">Educational Assistance</option>
+                <option value="Calamity Relief">Calamity Relief</option>
+              </select>
+            </div>
+          )}
 
           {/* Amount Field */}
           <div className="form-group">
@@ -242,7 +262,7 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
             <input 
               type="number" 
               className="form-input" 
-              placeholder="e.g. 1500.00"
+              placeholder="e.g. 500.00"
               value={amountVal}
               onChange={(e) => setAmountVal(e.target.value)}
               required

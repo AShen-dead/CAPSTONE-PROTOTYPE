@@ -52,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('faculty-members', FacultyMemberController::class);
 
     // Announcements
+    Route::get('announcements/contribution-drives', [AnnouncementController::class, 'contributionDrives']);
     Route::apiResource('announcements', AnnouncementController::class);
 
     // Benefit Types

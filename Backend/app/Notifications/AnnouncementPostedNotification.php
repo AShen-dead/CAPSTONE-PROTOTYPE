@@ -32,6 +32,17 @@ class AnnouncementPostedNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        if ($this->announcement->is_contribution_drive) {
+            $beneficiary = $this->announcement->beneficiary_name ?: 'Faculty Beneficiary';
+            $benefitType = $this->announcement->benefit_type ?: 'Aid';
+            return [
+                'type'       => 'contribution_drive_posted',
+                'title'      => "🤝 Call for Contributions: {$beneficiary}",
+                'message'    => "A new contribution drive ({$benefitType}) has been announced for {$beneficiary}. Click to view details.",
+                'action_tab' => 'Announcements',
+            ];
+        }
+
         return [
             'type'       => 'announcement_posted',
             'title'      => '📢 New Announcement',

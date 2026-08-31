@@ -23,6 +23,18 @@ class AnnouncementController extends Controller
     }
 
     /**
+     * Return only announcements that are contribution / beneficiary aid drives.
+     */
+    public function contributionDrives(): JsonResponse
+    {
+        $drives = Announcement::where('is_contribution_drive', true)
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'title', 'benefit_type', 'beneficiary_name', 'created_at']);
+
+        return response()->json(['data' => $drives]);
+    }
+
+    /**
      * Store a newly created announcement in storage.
      */
     public function store(Request $request): JsonResponse
@@ -32,14 +44,20 @@ class AnnouncementController extends Controller
         }
 
         $validated = $request->validate([
-            'title'   => 'required|string|max:255',
-            'content' => 'required|string',
+            'title'                 => 'required|string|max:255',
+            'content'               => 'required|string',
+            'is_contribution_drive' => 'nullable|boolean',
+            'benefit_type'          => 'nullable|string|max:255',
+            'beneficiary_name'      => 'nullable|string|max:255',
         ]);
 
         $announcement = Announcement::create([
-            'title'     => $validated['title'],
-            'content'   => $validated['content'],
-            'author_id' => $request->user()->id,
+            'title'                 => $validated['title'],
+            'content'               => $validated['content'],
+            'is_contribution_drive' => $validated['is_contribution_drive'] ?? false,
+            'benefit_type'          => $validated['benefit_type'] ?? null,
+            'beneficiary_name'      => $validated['beneficiary_name'] ?? null,
+            'author_id'             => $request->user()->id,
         ]);
 
         $authorName = $request->user()->name;
@@ -62,8 +80,11 @@ class AnnouncementController extends Controller
         }
 
         $validated = $request->validate([
-            'title'   => 'sometimes|required|string|max:255',
-            'content' => 'sometimes|required|string',
+            'title'                 => 'sometimes|required|string|max:255',
+            'content'               => 'sometimes|required|string',
+            'is_contribution_drive' => 'nullable|boolean',
+            'benefit_type'          => 'nullable|string|max:255',
+            'beneficiary_name'      => 'nullable|string|max:255',
         ]);
 
         $announcement->update($validated);
