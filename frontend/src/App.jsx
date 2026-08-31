@@ -10,6 +10,7 @@ import ManagePaymentsPage from './components/ManagePaymentsPage';
 import ManageBenefitTypesPage from './components/ManageBenefitTypesPage';
 import ApproveBenefitRequestsPage from './components/ApproveBenefitRequestsPage';
 import GenerateReportsPage from './components/GenerateReportsPage';
+import AnnouncementsPage from './components/AnnouncementsPage';
 import FacultyPanel from './components/FacultyPanel';
 import LoginPage from './components/LoginPage';
 import { animatePageEntrance, animateStatCards } from './utils/animations';
@@ -184,6 +185,8 @@ export default function App() {
 
   const renderAdminContent = () => {
     switch (activeTab) {
+      case 'Announcements':
+        return <AnnouncementsPage />;
       case 'Manage Members':
         return <ManageMembersPage />;
       case 'Manage Payments':

@@ -6,6 +6,7 @@ import FacultyRequests from './FacultyRequests';
 import FacultySubmit from './FacultySubmit';
 import FacultyPaymentHistory from './FacultyPaymentHistory';
 import FacultyProfile from './FacultyProfile';
+import FacultyAnnouncements from './FacultyAnnouncements';
 import { animateButtonPress } from '../utils/animations';
 
 export default function FacultyPanel({ currentUser, onLogout }) {
@@ -21,6 +22,16 @@ export default function FacultyPanel({ currentUser, onLogout }) {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      )
+    },
+    {
+      id: 'Announcements',
+      label: 'News',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 11l18-5v12L3 14v-3z" />
+          <path d="M11 13v9" />
         </svg>
       )
     },
@@ -69,6 +80,8 @@ export default function FacultyPanel({ currentUser, onLogout }) {
 
   const renderFacultyContent = () => {
     switch (activeTab) {
+      case 'Announcements':
+        return <FacultyAnnouncements />;
       case 'My assistance requests':
         return <FacultyRequests />;
       case 'Submit':

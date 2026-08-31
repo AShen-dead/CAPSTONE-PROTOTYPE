@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BenefitRequestController;
 use App\Http\Controllers\Api\BenefitTypeController;
@@ -40,6 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Faculty Members
     Route::apiResource('faculty-members', FacultyMemberController::class);
+
+    // Announcements
+    Route::apiResource('announcements', AnnouncementController::class);
 
     // Benefit Types
     Route::apiResource('benefit-types', BenefitTypeController::class);

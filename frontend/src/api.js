@@ -93,6 +93,34 @@ export function sendNotify(payload) {
   });
 }
 
+// ── ANNOUNCEMENTS ─────────────────────────────────────────────────────────────
+
+export function fetchAnnouncements() {
+  return apiFetch('/announcements');
+}
+
+export function createAnnouncement(data) {
+  return apiFetch('/announcements', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateAnnouncement(id, data) {
+  return apiFetch(`/announcements/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteAnnouncement(id) {
+  return apiFetch(`/announcements/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── MISC ──────────────────────────────────────────────────────────────────────
+
 // ── Notification API helpers ──────────────────────────────────
 
 /**
