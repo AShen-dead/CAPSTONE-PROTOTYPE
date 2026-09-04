@@ -248,26 +248,31 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
                 value={categoryType}
                 onChange={(e) => setCategoryType(e.target.value)}
               >
+                <option value="Death Aid / Mortuary">Death Aid / Mortuary</option>
                 <option value="Medical Assistance">Medical Assistance</option>
-                <option value="Bereavement Assistance">Bereavement Assistance</option>
-                <option value="Educational Assistance">Educational Assistance</option>
+                <option value="Surgical Assistance">Surgical Assistance</option>
+                <option value="Retirement Assistance">Retirement Assistance</option>
+                <option value="Pabaon">Pabaon</option>
                 <option value="Calamity Relief">Calamity Relief</option>
+                <option value="Educational Assistance">Educational Assistance</option>
               </select>
             </div>
           )}
 
-          {/* Amount Field */}
-          <div className="form-group">
-            <label>Amount (₱)</label>
-            <input 
-              type="number" 
-              className="form-input" 
-              placeholder="e.g. 500.00"
-              value={amountVal}
-              onChange={(e) => setAmountVal(e.target.value)}
-              required
-            />
-          </div>
+          {/* Amount Field — only for Proof of Payment */}
+          {activeToggle === 'Proof of payment' && (
+            <div className="form-group">
+              <label>Amount (₱)</label>
+              <input 
+                type="number" 
+                className="form-input" 
+                placeholder="e.g. 500.00"
+                value={amountVal}
+                onChange={(e) => setAmountVal(e.target.value)}
+                required
+              />
+            </div>
+          )}
 
           {/* Reason / Notes Textarea */}
           <div className="form-group">

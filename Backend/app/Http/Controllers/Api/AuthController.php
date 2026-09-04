@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -97,6 +98,101 @@ class AuthController extends Controller
     {
         return response()->json([
             'data' => $request->user()->load('facultyMember'),
+        ]);
+    }
+
+    /**
+     * Change the authenticated user's password.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required'],
+            'new_password'     => ['required', 'min:6', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'The current password is incorrect.',
+            ], 422);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        return response()->json([
+            'message' => 'Password changed successfully.',
+        ]);
+    }
+
+    /**
+     * Update the authenticated user's profile (name, email, and faculty info).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name'         => ['required', 'string', 'max:255'],
+            'email'        => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'department'   => ['nullable', 'string', 'max:255'],
+            'contact_no'   => ['nullable', 'string', 'max:50'],
+            'first_name'   => ['nullable', 'string', 'max:100'],
+            'last_name'    => ['nullable', 'string', 'max:100'],
+        ]);
+
+        // Update the user account (name, email)
+        $user->update([
+            'name'  => $validated['name'],
+            'email' => $validated['email'],
+        ]);
+
+        // Update or create the linked faculty member record
+        $facultyData = array_filter([
+            'department' => $validated['department'] ?? null,
+            'contact_no' => $validated['contact_no'] ?? null,
+            'first_name' => $validated['first_name'] ?? null,
+            'last_name'  => $validated['last_name'] ?? null,
+        ], fn($v) => !is_null($v));
+
+        if (!empty($facultyData) && $user->facultyMember) {
+            $user->facultyMember->update($facultyData);
+        }
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'data'    => $user->fresh()->load('facultyMember'),
+        ]);
+    }
+
+    /**
+     * Upload or replace the authenticated user's profile photo.
+     */
+    public function uploadPhoto(Request $request): JsonResponse
+    {
+        $request->validate([
+            'photo' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+        ]);
+
+        $user = $request->user();
+
+        // Delete the old photo if one exists
+        if ($user->profile_photo) {
+            Storage::disk('public')->delete($user->profile_photo);
+        }
+
+        // Store new photo under public/profile-photos/
+        $path = $request->file('photo')->store('profile-photos', 'public');
+
+        $user->update(['profile_photo' => $path]);
+
+        return response()->json([
+            'message'       => 'Photo updated successfully.',
+            'profile_photo' => $path,
+            'photo_url'     => asset('storage/' . $path),
         ]);
     }
 }

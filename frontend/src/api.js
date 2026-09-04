@@ -93,6 +93,35 @@ export function fetchFacultyRequests() {
   return apiFetch('/faculty/requests');
 }
 
+export function fetchFacultyMembers(params = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.append('search', params.search);
+  if (params.status && params.status !== 'All') query.append('status', params.status);
+  if (params.department && params.department !== 'All') query.append('department', params.department);
+  const qStr = query.toString();
+  return apiFetch(`/faculty-members${qStr ? `?${qStr}` : ''}`);
+}
+
+export function createFacultyMember(data) {
+  return apiFetch('/faculty-members', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateFacultyMember(id, data) {
+  return apiFetch(`/faculty-members/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteFacultyMember(id) {
+  return apiFetch(`/faculty-members/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export function fetchReports(fromDate, toDate, reportType) {
   const params = new URLSearchParams();
   if (fromDate) params.append('from_date', fromDate);

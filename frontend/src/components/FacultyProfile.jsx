@@ -24,6 +24,25 @@ export default function FacultyProfile({ currentUser, onLogout }) {
   const [bulletinAlerts, setBulletinAlerts] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
 
+  // Edit Profile Form State
+  const [profileName, setProfileName] = useState(user.name || '');
+  const [profileEmail, setProfileEmail] = useState(user.email || '');
+  const [profileFirstName, setProfileFirstName] = useState(user.facultyMember?.first_name || '');
+  const [profileLastName, setProfileLastName] = useState(user.facultyMember?.last_name || '');
+  const [profileDepartment, setProfileDepartment] = useState(user.facultyMember?.department || '');
+  const [profileContact, setProfileContact] = useState(user.facultyMember?.contact_no || '');
+  const [profileFeedback, setProfileFeedback] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // Profile Photo State
+  const STORAGE_BASE = 'http://localhost:8000/storage/';
+  const [photoPreview, setPhotoPreview] = useState(
+    user.profile_photo ? STORAGE_BASE + user.profile_photo : null
+  );
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef(null);
+
   useEffect(() => {
     if (containerRef.current) {
       animatePageEntrance(containerRef.current);
@@ -44,7 +63,7 @@ export default function FacultyProfile({ currentUser, onLogout }) {
     }
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     if (newPassword.length < 6) {
       setPasswordFeedback('Error: New password must be at least 6 characters long.');
@@ -55,14 +74,142 @@ export default function FacultyProfile({ currentUser, onLogout }) {
       return;
     }
 
-    setPasswordFeedback('Success: Password updated successfully!');
-    setTimeout(() => {
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordFeedback('');
-      handleCloseModal();
-    }, 1100);
+    try {
+      const token = localStorage.getItem('ucare_token');
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Accept':        'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          current_password:          currentPassword,
+          new_password:              newPassword,
+          new_password_confirmation: confirmPassword,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const msg = data?.message || 'Failed to change password.';
+        setPasswordFeedback(`Error: ${msg}`);
+        return;
+      }
+
+      setPasswordFeedback('Success: Password updated successfully!');
+      setTimeout(() => {
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordFeedback('');
+        handleCloseModal();
+      }, 1100);
+
+    } catch (err) {
+      setPasswordFeedback('Error: Could not connect to the server. Please try again.');
+    }
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handlePhotoUpload = async () => {
+    if (!photoFile) return;
+    setPhotoUploading(true);
+    try {
+      const token = localStorage.getItem('ucare_token');
+      const formData = new FormData();
+      formData.append('photo', photoFile);
+
+      const response = await fetch('/api/auth/upload-photo', {
+        method: 'POST',
+        headers: { 'Authorization': token ? `Bearer ${token}` : '', 'Accept': 'application/json' },
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setProfileFeedback('Error: ' + (data?.message || 'Photo upload failed.'));
+        return;
+      }
+
+      // Persist new photo URL in localStorage
+      const stored = localStorage.getItem('ucare_user');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          localStorage.setItem('ucare_user', JSON.stringify({ ...parsed, profile_photo: data.profile_photo }));
+        } catch {}
+      }
+      setPhotoFile(null);
+      setProfileFeedback('Success: Profile photo updated!');
+    } catch {
+      setProfileFeedback('Error: Could not upload photo. Please try again.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileFeedback('');
+    try {
+      const token = localStorage.getItem('ucare_token');
+      const response = await fetch('/api/auth/update-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Accept':        'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          name:        profileName,
+          email:       profileEmail,
+          first_name:  profileFirstName,
+          last_name:   profileLastName,
+          department:  profileDepartment,
+          contact_no:  profileContact,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const msg = data?.message || data?.errors?.email?.[0] || 'Failed to update profile.';
+        setProfileFeedback(`Error: ${msg}`);
+        return;
+      }
+
+      // Update localStorage so the name in the header reflects immediately
+      const stored = localStorage.getItem('ucare_user');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          localStorage.setItem('ucare_user', JSON.stringify({ ...parsed, ...data.data }));
+        } catch {}
+      }
+
+      setProfileFeedback('Success: Profile updated successfully!');
+      setTimeout(() => {
+        setProfileFeedback('');
+        handleCloseModal();
+        // Reload so the header name refreshes
+        window.location.reload();
+      }, 1100);
+
+    } catch (err) {
+      setProfileFeedback('Error: Could not connect to the server. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   const handleSaveNotifications = (e) => {
@@ -78,8 +225,22 @@ export default function FacultyProfile({ currentUser, onLogout }) {
     <main className="main-content" ref={containerRef}>
       {/* Profile Header */}
       <div className="faculty-profile-header-card">
-        <div className="faculty-avatar-large">
-          {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'FM'}
+        <div
+          className="faculty-avatar-large"
+          style={{ padding: 0, overflow: 'hidden', cursor: 'pointer', position: 'relative' }}
+          title="Click Edit Profile to change your photo"
+        >
+          {photoPreview ? (
+            <img
+              src={photoPreview}
+              alt="Profile"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+            />
+          ) : (
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', fontSize: '1.8rem', fontWeight: '800' }}>
+              {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'FM'}
+            </span>
+          )}
         </div>
         <div className="faculty-profile-info">
           <div className="faculty-profile-name">{user.name}</div>
@@ -92,6 +253,23 @@ export default function FacultyProfile({ currentUser, onLogout }) {
 
       {/* Settings Grid (2-column on Laptop, 1-column on Phone) */}
       <div className="settings-grid">
+        {/* 0. Edit Profile Card */}
+        <div className="setting-card" onClick={() => setActiveModal('editProfile')}>
+          <div className="setting-card-left">
+            <div className="setting-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
+            <div>
+              <div className="setting-card-title">Edit Profile</div>
+              <div className="setting-card-subtitle">Update your name, email, department &amp; contact</div>
+            </div>
+          </div>
+          <span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>&gt;</span>
+        </div>
+
         {/* 1. Employment Info Setting Card */}
         <div className="setting-card" onClick={() => setActiveModal('employment')}>
           <div className="setting-card-left">
@@ -184,6 +362,175 @@ export default function FacultyProfile({ currentUser, onLogout }) {
         </div>
         <span style={{ fontSize: '1.2rem', color: '#DC2626', fontWeight: 'bold' }}>&gt;</span>
       </div>
+
+      {/* ───────────────────────────────────────────────────────────────────
+         MODAL 0: Edit Profile
+         ─────────────────────────────────────────────────────────────────── */}
+      {activeModal === 'editProfile' && (
+        <div className="modal-overlay" ref={overlayRef}>
+          <div className="modal-content" ref={modalRef} style={{ maxWidth: '540px' }}>
+            <div className="modal-header">
+              <h3>Edit Profile</h3>
+              <button className="btn-close-modal" onClick={handleCloseModal}>✕</button>
+            </div>
+
+            <form onSubmit={handleProfileSubmit} className="modal-body-form">
+              {profileFeedback && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  fontSize: '0.84rem',
+                  fontWeight: '600',
+                  backgroundColor: profileFeedback.startsWith('Error') ? '#FEE2E2' : '#E8F6EF',
+                  color: profileFeedback.startsWith('Error') ? '#B91C1C' : '#2E8B57',
+                  border: `1px solid ${profileFeedback.startsWith('Error') ? '#FCA5A5' : '#C1E6D0'}`
+                }}>
+                  {profileFeedback}
+                </div>
+              )}
+
+              {/* Photo Upload */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', background: '#F8FAFC', padding: '14px 16px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+                {/* Circle avatar preview */}
+                <div style={{
+                  width: '72px', height: '72px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #8B1E3F 0%, #6E1731 100%)',
+                  overflow: 'hidden', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.5rem', fontWeight: '800', color: '#fff',
+                  border: '3px solid var(--primary-maroon)'
+                }}>
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    (user.name || '?').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                  )}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-main)', marginBottom: '6px' }}>
+                    Profile Photo
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      ref={photoInputRef}
+                      style={{ display: 'none' }}
+                      onChange={handlePhotoChange}
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: '0.78rem', padding: '5px 12px' }}
+                      onClick={() => photoInputRef.current?.click()}
+                    >
+                      Choose Photo
+                    </button>
+                    {photoFile && (
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ fontSize: '0.78rem', padding: '5px 12px' }}
+                        onClick={handlePhotoUpload}
+                        disabled={photoUploading}
+                      >
+                        {photoUploading ? 'Uploading...' : 'Upload'}
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    JPG, PNG or WebP · Max 2MB
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Info */}
+              <div style={{ fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary-maroon)', marginBottom: '4px' }}>
+                Account Info
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Display Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={profileEmail}
+                    onChange={(e) => setProfileEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Personal Info */}
+              <div style={{ fontSize: '0.72rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary-maroon)', marginTop: '8px', marginBottom: '4px' }}>
+                Personal Information
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>First Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Maria"
+                    value={profileFirstName}
+                    onChange={(e) => setProfileFirstName(e.target.value)}
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Last Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Santos"
+                    value={profileLastName}
+                    onChange={(e) => setProfileLastName(e.target.value)}
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Department / College</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. College of Engineering"
+                    value={profileDepartment}
+                    onChange={(e) => setProfileDepartment(e.target.value)}
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Contact Number</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 09XX-XXX-XXXX"
+                    value={profileContact}
+                    onChange={(e) => setProfileContact(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={handleCloseModal} disabled={profileSaving}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={profileSaving}>
+                  {profileSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ───────────────────────────────────────────────────────────────────
          MODAL 1: Employment Information
