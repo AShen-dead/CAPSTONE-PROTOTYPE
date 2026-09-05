@@ -102,6 +102,7 @@ export default function FacultyPanel({ currentUser, onLogout }) {
     userName: currentUser?.name ?? 'Prof. Maria Santos',
     userRole: 'Faculty Member',
     roleBadge: 'FACULTY',
+    userPhoto: currentUser?.profile_photo_url || currentUser?.profile_photo || null,
     onLogout: onLogout,
     onMenuToggle: () => setSidebarOpen(v => !v),
     onNavigate: (tab) => {
@@ -128,6 +129,7 @@ export default function FacultyPanel({ currentUser, onLogout }) {
             label: item.id === 'My assistance requests' ? 'My Assistance Requests' : item.id === 'Payment history' ? 'Payment History' : item.id,
             icon: item.icon
           }))}
+          onSignOut={() => window.dispatchEvent(new CustomEvent('ucare_open_signout_modal'))}
         />
 
         {/* Main Content Screen */}

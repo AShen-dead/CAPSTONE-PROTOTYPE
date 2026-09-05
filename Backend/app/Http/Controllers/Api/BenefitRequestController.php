@@ -19,19 +19,21 @@ class BenefitRequestController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = BenefitRequest::with(['facultyMember', 'benefitType', 'documents', 'approvedBy']);
+        $query = BenefitRequest::with(['facultyMember.user', 'benefitType', 'documents', 'approvedBy']);
 
         if ($request->filled('faculty_id')) {
             $query->where('faculty_id', $request->faculty_id);
         }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== 'All') {
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('benefit_type_id')) {
+        if ($request->filled('benefit_type_id') && $request->benefit_type_id !== 'All') {
             $query->where('benefit_type_id', $request->benefit_type_id);
         }
+
+        $query->orderByDesc('request_date')->orderByDesc('id');
 
         return response()->json(['data' => $query->get()]);
     }
@@ -42,11 +44,50 @@ class BenefitRequestController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
+        $facultyId = $request->input('faculty_id');
+        if (!$facultyId && $user) {
+            $faculty = $user->facultyMember;
+            if (!$faculty) {
+                $names = explode(' ', $user->name, 2);
+                $faculty = \App\Models\FacultyMember::create([
+                    'user_id'     => $user->id,
+                    'employee_no' => 'EMP-' . str_pad($user->id, 4, '0', STR_PAD_LEFT),
+                    'first_name'  => $names[0] ?? $user->name,
+                    'last_name'   => $names[1] ?? 'Faculty',
+                    'department'  => 'General',
+                    'status'      => 'Active',
+                ]);
+            }
+            $facultyId = $faculty->id;
+        }
+
+        // Find or match benefit_type_id
+        $benefitTypeId = $request->input('benefit_type_id');
+        if (!$benefitTypeId && $request->filled('benefit_type')) {
+            $bType = \App\Models\BenefitType::where('benefit_name', $request->benefit_type)
+                ->orWhere('benefit_name', 'like', "%{$request->benefit_type}%")
+                ->first();
+            if (!$bType) {
+                $bType = \App\Models\BenefitType::create([
+                    'benefit_name' => $request->benefit_type,
+                    'status'       => 'Active',
+                ]);
+            }
+            $benefitTypeId = $bType->id;
+        }
+
+        $request->merge([
+            'faculty_id'      => $facultyId,
+            'benefit_type_id' => $benefitTypeId,
+        ]);
+
         $validated = $request->validate([
             'faculty_id'       => ['required', 'exists:faculty_members,id'],
             'benefit_type_id'  => ['required', 'exists:benefit_types,id'],
             'amount_requested' => ['nullable', 'numeric', 'min:0'],
             'reason'           => ['nullable', 'string'],
+            'document'         => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
             'documents'        => ['nullable', 'array'],
             'documents.*'      => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ]);
@@ -55,10 +96,19 @@ class BenefitRequestController extends Controller
             $benefitRequest = BenefitRequest::create([
                 'faculty_id'       => $validated['faculty_id'],
                 'benefit_type_id'  => $validated['benefit_type_id'],
+                'request_date'     => now()->toDateString(),
                 'amount_requested' => $validated['amount_requested'] ?? null,
-                'reason'           => $validated['reason'] ?? null,
+                'reason'           => $validated['reason'] ?? $request->input('notes') ?? null,
                 'status'           => 'Pending',
             ]);
+
+            if ($request->hasFile('document')) {
+                $path = $request->file('document')->store('benefit-documents', 'public');
+                BenefitDocument::create([
+                    'request_id'    => $benefitRequest->id,
+                    'document_path' => $path,
+                ]);
+            }
 
             if ($request->hasFile('documents')) {
                 foreach ($request->file('documents') as $file) {
@@ -70,14 +120,14 @@ class BenefitRequestController extends Controller
                 }
             }
 
-            return $benefitRequest->load(['facultyMember', 'benefitType', 'documents']);
+            return $benefitRequest->load(['facultyMember.user', 'benefitType', 'documents']);
         });
 
         // Notify all admins about the new benefit request
         $facultyName = $result->facultyMember
-            ? trim("{$result->facultyMember->first_name} {$result->facultyMember->last_name}")
+            ? ($result->facultyMember->user?->name ?? trim("{$result->facultyMember->first_name} {$result->facultyMember->last_name}"))
             : 'A faculty member';
-        $benefitTypeName = $result->benefitType->name ?? 'Benefit';
+        $benefitTypeName = $result->benefitType->benefit_name ?? $result->benefitType->name ?? 'Benefit';
         $amount          = (float) ($result->amount_requested ?? 0);
 
         $admins = User::where('role', 'admin')->get();
@@ -99,7 +149,7 @@ class BenefitRequestController extends Controller
     public function show(BenefitRequest $benefitRequest): JsonResponse
     {
         return response()->json([
-            'data' => $benefitRequest->load(['facultyMember', 'benefitType', 'documents', 'approvedBy']),
+            'data' => $benefitRequest->load(['facultyMember.user', 'benefitType', 'documents', 'approvedBy']),
         ]);
     }
 
@@ -119,7 +169,7 @@ class BenefitRequestController extends Controller
         ]);
 
         $benefitRequest->update($validated);
-        $fresh     = $benefitRequest->fresh()->load(['facultyMember', 'benefitType', 'documents', 'approvedBy']);
+        $fresh     = $benefitRequest->fresh()->load(['facultyMember.user', 'benefitType', 'documents', 'approvedBy']);
         $newStatus = strtolower($fresh->status ?? '');
 
         // Notify faculty member if admin just made a decision
@@ -131,7 +181,7 @@ class BenefitRequestController extends Controller
         ) {
             $fresh->facultyMember->user->notify(new BenefitRequestDecidedNotification(
                 status:      ucfirst($fresh->status),
-                benefitType: $fresh->benefitType->name ?? 'Benefit',
+                benefitType: $fresh->benefitType->benefit_name ?? $fresh->benefitType->name ?? 'Benefit',
                 amount:      (float) ($fresh->amount_requested ?? 0),
                 requestId:   $fresh->id,
             ));
@@ -153,22 +203,24 @@ class BenefitRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', 'in:Approved,Rejected'],
+            'status' => ['required', 'in:Approved,Rejected,Declined'],
         ]);
 
+        $status = in_array($validated['status'], ['Rejected', 'Declined']) ? 'Declined' : 'Approved';
+
         $benefitRequest->update([
-            'status'        => $validated['status'],
+            'status'        => $status,
             'approved_by'   => $request->user()->id,
             'approved_date' => now(),
         ]);
 
-        $fresh = $benefitRequest->fresh()->load(['facultyMember', 'benefitType', 'approvedBy']);
+        $fresh = $benefitRequest->fresh()->load(['facultyMember.user', 'benefitType', 'documents', 'approvedBy']);
 
         // Notify the faculty member of the admin's decision
         if ($fresh->facultyMember?->user) {
             $fresh->facultyMember->user->notify(new BenefitRequestDecidedNotification(
-                status:      $validated['status'],
-                benefitType: $fresh->benefitType->name ?? 'Benefit',
+                status:      $status,
+                benefitType: $fresh->benefitType->benefit_name ?? $fresh->benefitType->name ?? 'Benefit',
                 amount:      (float) ($fresh->amount_requested ?? 0),
                 requestId:   $fresh->id,
             ));

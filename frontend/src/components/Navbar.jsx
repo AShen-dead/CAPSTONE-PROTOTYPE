@@ -20,6 +20,7 @@ export default function Navbar({
   userName = "Sec. Administrator",
   userRole = "Faculty Union Admin",
   roleBadge = "SYSTEM ADMIN",
+  userPhoto = null,
   onLogout,
   onMenuToggle,
   onNavigate,
@@ -28,6 +29,19 @@ export default function Navbar({
   const [showSignOutModal,  setShowSignOutModal]  = useState(false);
   const [notifications,     setNotifications]     = useState([]);
   const [loadingNotifs,     setLoadingNotifs]     = useState(false);
+  const [photoError,        setPhotoError]        = useState(false);
+
+  useEffect(() => {
+    setPhotoError(false);
+  }, [userPhoto]);
+
+  const resolvePhotoUrl = (photo) => {
+    if (!photo) return null;
+    if (photo.startsWith('http://') || photo.startsWith('https://')) return photo;
+    return `/storage/${photo.replace(/^\/+/, '')}`;
+  };
+
+  const photoUrl = resolvePhotoUrl(userPhoto);
 
   const dropdownRef      = useRef(null);
   const signOutModalRef  = useRef(null);
@@ -67,6 +81,13 @@ export default function Navbar({
       animateModalOpen(signOutModalRef.current, signOutOverlayRef.current);
     }
   }, [showSignOutModal]);
+
+  // Allow external triggers (e.g. mobile drawer sidebar) to open Sign Out modal
+  useEffect(() => {
+    const handleOpenExternal = () => setShowSignOutModal(true);
+    window.addEventListener('ucare_open_signout_modal', handleOpenExternal);
+    return () => window.removeEventListener('ucare_open_signout_modal', handleOpenExternal);
+  }, []);
 
   // ── Handlers ─────────────────────────────────────────────────
   const handleCloseSignOutModal = () => {
@@ -244,10 +265,39 @@ export default function Navbar({
             <span className="badge-label">{roleBadge}</span>
           </div>
 
-          {/* User Profile */}
-          <div className="user-profile-summary">
-            <div className="avatar-circle">
-              {userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
+          {/* User Profile (Clickable to trigger Sign Out on all screen sizes) */}
+          <div
+            className="user-profile-summary"
+            onClick={() => {
+              if (onLogout) setShowSignOutModal(true);
+            }}
+            title={onLogout ? "Click to Sign Out" : undefined}
+            style={{ cursor: onLogout ? 'pointer' : 'default' }}
+          >
+            <div 
+              className="avatar-circle"
+              style={{
+                overflow: 'hidden',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                backgroundColor: '#fff',
+                border: '2px solid #F4B942',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}
+            >
+              {photoUrl && !photoError ? (
+                <img
+                  src={photoUrl}
+                  alt={userName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  onError={() => setPhotoError(true)}
+                />
+              ) : (
+                userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'
+              )}
             </div>
             <div className="user-name-role">
               <span className="user-name">{userName}</span>
@@ -260,6 +310,7 @@ export default function Navbar({
             <button
               className="nav-logout-btn"
               onClick={(e) => {
+                e.stopPropagation();
                 animateButtonPress(e.currentTarget);
                 setShowSignOutModal(true);
               }}
@@ -281,7 +332,13 @@ export default function Navbar({
          SIGN OUT CONFIRMATION MODAL
          ───────────────────────────────────────────────────────────────── */}
       {showSignOutModal && (
-        <div className="modal-overlay" ref={signOutOverlayRef}>
+        <div
+          className="modal-overlay"
+          ref={signOutOverlayRef}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseSignOutModal();
+          }}
+        >
           <div className="modal-content" ref={signOutModalRef} style={{ maxWidth: '440px' }}>
             <div className="modal-header" style={{ backgroundColor: 'linear-gradient(135deg, #8B1E3F 0%, #6E1731 100%)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

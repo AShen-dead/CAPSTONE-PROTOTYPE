@@ -35,6 +35,23 @@ class User extends Authenticatable
         'updated_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'profile_photo_url',
+    ];
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        if (! $this->profile_photo) {
+            return null;
+        }
+
+        if (str_starts_with($this->profile_photo, 'http://') || str_starts_with($this->profile_photo, 'https://')) {
+            return $this->profile_photo;
+        }
+
+        return asset('storage/' . ltrim($this->profile_photo, '/'));
+    }
+
     public function facultyMember(): HasOne
     {
         return $this->hasOne(FacultyMember::class);

@@ -56,7 +56,30 @@ export default function RecentPaymentsTable({ payments = [], onNavigate }) {
                 <tr key={item.id}>
                   <td>
                     <div className="member-cell">
-                      <div className="member-avatar">{item.avatar}</div>
+                      <div 
+                        className="member-avatar"
+                        style={{
+                          padding: 0,
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, #8B1E3F 0%, #6E1731 100%)',
+                          color: '#fff',
+                          fontWeight: '700'
+                        }}
+                      >
+                        {item.profile_photo_url || item.profile_photo ? (
+                          <img
+                            src={item.profile_photo_url || (item.profile_photo.startsWith('http') ? item.profile_photo : `/storage/${item.profile_photo.replace(/^\/+/, '')}`)}
+                            alt={item.member}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          item.avatar
+                        )}
+                      </div>
                       <span>{item.member}</span>
                     </div>
                   </td>

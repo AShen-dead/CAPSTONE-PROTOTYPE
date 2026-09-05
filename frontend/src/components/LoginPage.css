@@ -417,3 +417,48 @@
   font-size: 0.75rem;
   color: var(--text-light);
 }
+
+/* Mobile optimizations for Login Page */
+@media (max-width: 540px) {
+  .login-form-panel {
+    padding: 24px 16px;
+  }
+
+  .login-card {
+    padding: 28px 20px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+
+  .login-card-title {
+    font-size: 1.3rem;
+  }
+
+  .login-card-subtitle {
+    font-size: 0.82rem;
+  }
+
+  .login-quick-btn {
+    font-size: 0.76rem;
+    padding: 8px 10px;
+  }
+
+  .login-hint {
+    padding: 12px;
+  }
+
+  .login-hint-row {
+    font-size: 0.75rem;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 380px) {
+  .login-quick-row {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .login-quick-btn {
+    width: 100%;
+  }
+}

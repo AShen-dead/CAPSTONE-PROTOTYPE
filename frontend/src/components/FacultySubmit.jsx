@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { sendNotify, fetchContributionDrives } from '../api';
+import { sendNotify, fetchContributionDrives, submitBenefitRequest, fetchBenefitTypes } from '../api';
 
 export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
   const [activeToggle, setActiveToggle] = useState('Proof of payment');
@@ -28,30 +28,25 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
     loadDrives();
   }, []);
 
-  const initialBenefitRequests = [
-    {
-      id: 1,
-      memberName: 'Prof. Maria Santos',
-      avatar: 'MS',
-      benefitType: 'Medical Assistance',
-      dateFiled: 'Jul 26, 2026',
-      amountRequested: '₱ 15,000.00',
-      status: 'Pending',
-      attachment: 'Hospitalization_Record.pdf',
-      notes: 'Hospitalization record attached for knee surgery.'
-    },
-    {
-      id: 2,
-      memberName: 'Dr. Juan Dela Cruz',
-      avatar: 'JD',
-      benefitType: 'Bereavement Assistance',
-      dateFiled: 'Jul 24, 2026',
-      amountRequested: '₱ 12,000.00',
-      status: 'Pending',
-      attachment: 'Death_Certificate_Copy.pdf',
-      notes: 'Death certificate copy submitted for audit review.'
-    }
-  ];
+  const [benefitTypesList, setBenefitTypesList] = useState([
+    'Death Aid / Mortuary',
+    'Medical Assistance',
+    'Surgical Assistance',
+    'Retirement Assistance',
+    'Pabaon',
+    'Calamity Relief',
+    'Educational Assistance',
+  ]);
+
+  useEffect(() => {
+    fetchBenefitTypes({ status: 'Active' })
+      .then(res => {
+        if (res?.data && res.data.length > 0) {
+          setBenefitTypesList(res.data.map(b => b.benefit_name));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -83,37 +78,28 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
 
     try {
       if (activeToggle === 'Assistance request') {
-        // ── Assistance request: still uses localStorage for now ──────────────
-        const newRequest = {
-          id: Date.now(),
-          memberName: facultyName,
-          avatar: userInitials,
-          benefitType: categoryType,
-          dateFiled: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          amountRequested: `₱ ${parseFloat(amountVal || 5000).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-          status: 'Pending',
-          attachment: uploadedFile ? uploadedFile.name : 'Application_Document.pdf',
-          attachmentUrl: filePreviewUrl || '/assets/login-bg.jpg',
-          notes: reasonText.trim() || 'Faculty submitted assistance application',
-        };
-
-        const existingStr = localStorage.getItem('ucare_benefit_requests');
-        let existingRequests = initialBenefitRequests;
-        if (existingStr) {
-          try { existingRequests = JSON.parse(existingStr); } catch { existingRequests = initialBenefitRequests; }
+        // ── Assistance request: save to real database via API ──────────────
+        const formData = new FormData();
+        formData.append('benefit_type', categoryType);
+        if (amountVal) formData.append('amount_requested', amountVal);
+        formData.append('reason', reasonText.trim() || 'Faculty submitted assistance application');
+        if (uploadedFile) {
+          formData.append('document', uploadedFile);
         }
-        localStorage.setItem('ucare_benefit_requests', JSON.stringify([newRequest, ...existingRequests]));
+
+        await submitBenefitRequest(formData);
+
         window.dispatchEvent(new Event('ucare_requests_updated'));
 
         // Notify admins
         sendNotify({
           type:       'benefit_requested',
           title:      '📋 New Benefit Request Filed',
-          message:    `${facultyName} filed a ${categoryType} request (₱${parseFloat(amountVal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}) pending review.`,
+          message:    `${facultyName} filed a ${categoryType} request pending review.`,
           action_tab: 'Approve Benefit Requests',
         }).catch(() => {});
 
-        alert(`Success! Your assistance request for ${categoryType} (₱${amountVal}) has been submitted for admin approval.`);
+        alert(`Success! Your assistance request for ${categoryType} has been submitted for admin approval.`);
 
       } else {
         // ── Proof of payment: save to real database via API ──────────────────
@@ -248,13 +234,9 @@ export default function FacultySubmit({ currentUser, onSubmitSuccess }) {
                 value={categoryType}
                 onChange={(e) => setCategoryType(e.target.value)}
               >
-                <option value="Death Aid / Mortuary">Death Aid / Mortuary</option>
-                <option value="Medical Assistance">Medical Assistance</option>
-                <option value="Surgical Assistance">Surgical Assistance</option>
-                <option value="Retirement Assistance">Retirement Assistance</option>
-                <option value="Pabaon">Pabaon</option>
-                <option value="Calamity Relief">Calamity Relief</option>
-                <option value="Educational Assistance">Educational Assistance</option>
+                {benefitTypesList.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
               </select>
             </div>
           )}

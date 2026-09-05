@@ -36,8 +36,9 @@ class FacultyHistoryController extends Controller
         if (!$user->facultyMember) return response()->json(['data' => []]);
 
         $requests = BenefitRequest::where('faculty_id', $user->facultyMember->id)
-            ->with('benefitType')
-            ->orderByDesc('created_at')
+            ->with(['benefitType', 'documents'])
+            ->orderByDesc('request_date')
+            ->orderByDesc('id')
             ->get();
 
         return response()->json(['data' => $requests]);

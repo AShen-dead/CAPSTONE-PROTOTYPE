@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { animate, stagger } from 'animejs';
 
-export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = false, onClose, customItems, pendingCount = 3 }) {
+export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = false, onClose, customItems, pendingCount = 3, onSignOut }) {
   const sidebarNavRef = useRef(null);
 
   const defaultItems = [
@@ -136,7 +136,24 @@ export default function Sidebar({ activeItem = 'Home', onSelectTab, isOpen = fal
         </nav>
 
         <div className="sidebar-footer">
-          <div>U.C.A.R.E. Portal v1.0</div>
+          {onSignOut && (
+            <button
+              type="button"
+              className="sidebar-signout-btn"
+              onClick={() => {
+                if (onClose) onClose();
+                onSignOut();
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Sign Out</span>
+            </button>
+          )}
+          <div style={{ marginTop: onSignOut ? '8px' : '0' }}>U.C.A.R.E. Portal v1.0</div>
           <div style={{ fontSize: '0.68rem', marginTop: '2px' }}>ISPSC Tagudin Campus</div>
         </div>
       </aside>

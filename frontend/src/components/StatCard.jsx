@@ -48,7 +48,7 @@ export default function StatCard({
 
     return (
       <div style={{ position: 'relative', width: '100%' }}>
-        <svg className="chart-svg-mock" viewBox={`0 0 ${width} ${height}`} fill="none">
+        <svg className="chart-svg-mock" viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }} fill="none">
           <defs>
             <linearGradient id="areaGradInteractive" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#8B1E3F" stopOpacity="0.3" />
@@ -116,20 +116,23 @@ export default function StatCard({
   // Bar Chart Renderer with Tooltip & Labels
   const renderBarChart = () => {
     const maxVal = Math.max(...data, 1);
+    const width = 320;
     const height = 90;
-    const barWidth = 22;
-    const gap = 16;
-    const startX = 14;
+    const numBars = data.length || 1;
+    const padding = 16;
+    const availableWidth = width - padding * 2;
+    const barWidth = Math.min(26, Math.floor(availableWidth / (numBars * 1.6)));
+    const gap = (availableWidth - barWidth * numBars) / Math.max(numBars - 1, 1);
 
     return (
       <div style={{ position: 'relative', width: '100%' }}>
-        <svg className="chart-svg-mock" viewBox="0 0 240 90" fill="none">
+        <svg className="chart-svg-mock" viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', display: 'block' }} fill="none">
           {/* Baseline Gridline */}
-          <line x1="0" y1={height - 20} x2="240" y2={height - 20} stroke="#E2E8F0" strokeDasharray="3 3" />
+          <line x1="0" y1={height - 20} x2={width} y2={height - 20} stroke="#E2E8F0" strokeDasharray="3 3" />
 
           {data.map((val, idx) => {
             const barHeight = Math.max(12, (val / maxVal) * (height - 35));
-            const x = startX + idx * (barWidth + gap);
+            const x = padding + idx * (barWidth + gap);
             const y = height - 20 - barHeight;
             const isHovered = hoveredIndex === idx;
             const isHighest = val === maxVal;

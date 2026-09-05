@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchDashboard } from './api';
+import { fetchDashboard, fetchBenefitRequests, getUser, clearAuth, fetchCurrentUser } from './api';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import StatCard from './components/StatCard';
@@ -120,37 +120,46 @@ function AdminHomeContent({ onNavigate }) {
 }
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => getUser());
   const [activeTab, setActiveTab] = useState('Home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [pendingCount, setPendingCount] = useState(() => {
-    const saved = localStorage.getItem('ucare_benefit_requests');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.filter(r => r.status === 'Pending').length;
-      } catch (e) {
-        return 3;
-      }
-    }
-    return 3;
-  });
+  const [pendingCount, setPendingCount] = useState(0);
 
+  // Sync user profile from backend on load (e.g. to pull latest profile photo and details)
   useEffect(() => {
-    const syncPendingCount = () => {
-      const saved = localStorage.getItem('ucare_benefit_requests');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setPendingCount(parsed.filter(r => r.status === 'Pending').length);
-        } catch (e) {}
+    fetchCurrentUser().then((freshUser) => {
+      if (freshUser) setCurrentUser(freshUser);
+    });
+
+    const handleUserUpdated = (e) => {
+      if (e.detail) {
+        setCurrentUser(e.detail);
+      } else {
+        const stored = getUser();
+        if (stored) setCurrentUser(stored);
       }
     };
 
+    window.addEventListener('ucare_user_updated', handleUserUpdated);
+    return () => window.removeEventListener('ucare_user_updated', handleUserUpdated);
+  }, []);
+
+  useEffect(() => {
+    const syncPendingCount = async () => {
+      try {
+        const res = await fetchBenefitRequests({ status: 'Pending' });
+        setPendingCount((res?.data || []).length);
+      } catch (e) {}
+    };
+
+    if (currentUser && currentUser.role === 'admin') {
+      syncPendingCount();
+    }
+
     window.addEventListener('ucare_requests_updated', syncPendingCount);
     return () => window.removeEventListener('ucare_requests_updated', syncPendingCount);
-  }, []);
+  }, [currentUser]);
 
   const handleLogin = (userData) => {
     setCurrentUser(userData);
@@ -158,6 +167,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearAuth();
     setCurrentUser(null);
   };
 
@@ -178,6 +188,7 @@ export default function App() {
     userName: currentUser?.name ?? 'Sec. Administrator',
     userRole: 'Faculty Union Admin',
     roleBadge: 'SYSTEM ADMIN',
+    userPhoto: currentUser?.profile_photo_url || currentUser?.profile_photo || null,
     onLogout: handleLogout,
     onMenuToggle: () => setSidebarOpen(v => !v),
     onNavigate: setActiveTab
@@ -214,6 +225,7 @@ export default function App() {
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           pendingCount={pendingCount}
+          onSignOut={() => window.dispatchEvent(new CustomEvent('ucare_open_signout_modal'))}
         />
         {renderAdminContent()}
       </div>

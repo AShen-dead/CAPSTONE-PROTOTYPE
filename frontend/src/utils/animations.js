@@ -109,22 +109,26 @@ export const animateTableRows = (tableElement) => {
 export const animateModalOpen = (modalContentElement, overlayElement) => {
   if (isReducedMotion()) return;
 
-  if (overlayElement) {
-    animate(overlayElement, {
-      opacity: [0, 1],
-      duration: 200,
-      ease: 'linear'
-    });
-  }
+  try {
+    if (overlayElement) {
+      animate(overlayElement, {
+        opacity: [0, 1],
+        duration: 200,
+        ease: 'linear'
+      });
+    }
 
-  if (modalContentElement) {
-    animate(modalContentElement, {
-      opacity: [0, 1],
-      scale: [0.93, 1],
-      translateY: [20, 0],
-      duration: 380,
-      ease: 'outExpo'
-    });
+    if (modalContentElement) {
+      animate(modalContentElement, {
+        opacity: [0, 1],
+        scale: [0.93, 1],
+        translateY: [16, 0],
+        duration: 320,
+        ease: 'outExpo'
+      });
+    }
+  } catch (err) {
+    console.warn('animateModalOpen error:', err);
   }
 };
 
@@ -137,29 +141,34 @@ export const animateModalClose = (modalContentElement, overlayElement, onComplet
     return;
   }
 
-  if (modalContentElement) {
-    animate(modalContentElement, {
-      opacity: [1, 0],
-      scale: [1, 0.94],
-      translateY: [0, 12],
-      duration: 180,
-      ease: 'inCubic',
-      onComplete: () => {
-        if (overlayElement) {
-          animate(overlayElement, {
-            opacity: [1, 0],
-            duration: 120,
-            onComplete: () => {
-              if (onComplete) onComplete();
-            }
-          });
-        } else if (onComplete) {
-          onComplete();
+  try {
+    if (modalContentElement) {
+      animate(modalContentElement, {
+        opacity: [1, 0],
+        scale: [1, 0.94],
+        translateY: [0, 10],
+        duration: 160,
+        ease: 'inCubic',
+        onComplete: () => {
+          if (overlayElement) {
+            animate(overlayElement, {
+              opacity: [1, 0],
+              duration: 100,
+              onComplete: () => {
+                if (onComplete) onComplete();
+              }
+            });
+          } else if (onComplete) {
+            onComplete();
+          }
         }
-      }
-    });
-  } else if (onComplete) {
-    onComplete();
+      });
+    } else if (onComplete) {
+      onComplete();
+    }
+  } catch (err) {
+    console.warn('animateModalClose error:', err);
+    if (onComplete) onComplete();
   }
 };
 

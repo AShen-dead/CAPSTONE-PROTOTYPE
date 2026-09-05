@@ -71,7 +71,7 @@ export default function FacultyPaymentHistory() {
       </div>
 
       {/* Two Summary Cards */}
-      <div className="top-panels-grid" ref={panelsRef} style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className="top-panels-grid top-panels-grid--two-col" ref={panelsRef}>
         <StatCard
           headerTitle="TOTAL PAID"
           value={loading ? '...' : formatCurrency(totalPaid)}

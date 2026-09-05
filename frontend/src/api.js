@@ -33,6 +33,24 @@ export function getUser() {
 }
 
 /**
+ * Fetch fresh authenticated user profile from backend
+ */
+export async function fetchCurrentUser() {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    const res = await apiFetch('/auth/me');
+    if (res?.data) {
+      setAuth(token, res.data);
+      return res.data;
+    }
+  } catch {
+    // Silently return null on error
+  }
+  return null;
+}
+
+/**
  * Make an authenticated API request
  */
 export async function apiFetch(path, options = {}) {
@@ -103,6 +121,21 @@ export function fetchFacultyMembers(params = {}) {
 }
 
 export function createFacultyMember(data) {
+  if (data instanceof FormData) {
+    const token = getToken();
+    return fetch('/api/faculty-members', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: data,
+    }).then(async res => {
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw { status: res.status, data: json };
+      return json;
+    });
+  }
   return apiFetch('/faculty-members', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -110,6 +143,22 @@ export function createFacultyMember(data) {
 }
 
 export function updateFacultyMember(id, data) {
+  if (data instanceof FormData) {
+    const token = getToken();
+    data.append('_method', 'PUT');
+    return fetch(`/api/faculty-members/${id}`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: data,
+    }).then(async res => {
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw { status: res.status, data: json };
+      return json;
+    });
+  }
   return apiFetch(`/faculty-members/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
@@ -168,6 +217,76 @@ export function updateAnnouncement(id, data) {
 
 export function deleteAnnouncement(id) {
   return apiFetch(`/announcements/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── BENEFIT REQUESTS ─────────────────────────────────────────────────────────
+
+export function fetchBenefitRequests(params = {}) {
+  const query = new URLSearchParams();
+  if (params.status && params.status !== 'All') query.append('status', params.status);
+  if (params.faculty_id) query.append('faculty_id', params.faculty_id);
+  const qStr = query.toString();
+  return apiFetch(`/benefit-requests${qStr ? `?${qStr}` : ''}`);
+}
+
+export async function submitBenefitRequest(formDataOrData) {
+  const token = getToken();
+  const isFormData = formDataOrData instanceof FormData;
+  const headers = {
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch('/api/benefit-requests', {
+    method: 'POST',
+    headers,
+    body: isFormData ? formDataOrData : JSON.stringify(formDataOrData),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw { status: response.status, data };
+  }
+  return data;
+}
+
+export function decideBenefitRequest(id, status) {
+  return apiFetch(`/benefit-requests/${id}/approve`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+// ── BENEFIT TYPES ────────────────────────────────────────────────────────────
+
+export function fetchBenefitTypes(params = {}) {
+  const query = new URLSearchParams();
+  if (params.status && params.status !== 'All') query.append('status', params.status);
+  const qStr = query.toString();
+  return apiFetch(`/benefit-types${qStr ? `?${qStr}` : ''}`);
+}
+
+export function createBenefitType(data) {
+  return apiFetch('/benefit-types', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateBenefitType(id, data) {
+  return apiFetch(`/benefit-types/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteBenefitType(id) {
+  return apiFetch(`/benefit-types/${id}`, {
     method: 'DELETE',
   });
 }

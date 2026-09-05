@@ -46,12 +46,49 @@ export default function FacultyHome({ currentUser, onNavigate }) {
 
   const formatCurrency = (val) => '₱ ' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
+  const resolvePhotoUrl = (photo) => {
+    if (!photo) return null;
+    if (photo.startsWith('http://') || photo.startsWith('https://')) return photo;
+    return `/storage/${photo.replace(/^\/+/, '')}`;
+  };
+
+  const photoUrl = resolvePhotoUrl(user.profile_photo_url || user.profile_photo);
+  const [photoError, setPhotoError] = useState(false);
+
+  useEffect(() => {
+    setPhotoError(false);
+  }, [user.profile_photo_url, user.profile_photo]);
+
   return (
     <main className="main-content" ref={containerRef}>
       {/* Page Header / Profile Summary Row */}
       <div className="faculty-profile-header-card">
-        <div className="faculty-avatar-large">
-          {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'FM'}
+        <div 
+          className="faculty-avatar-large"
+          style={{
+            padding: 0,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            cursor: onNavigate ? 'pointer' : 'default',
+            border: '2px solid #F4B942',
+            boxShadow: '0 4px 14px rgba(139, 30, 63, 0.3)'
+          }}
+          onClick={() => onNavigate && onNavigate('Profile')}
+          title="Click to view and edit profile"
+        >
+          {photoUrl && !photoError ? (
+            <img 
+              src={photoUrl} 
+              alt={user.name} 
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={() => setPhotoError(true)}
+            />
+          ) : (
+            user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'FM'
+          )}
         </div>
         <div className="faculty-profile-info">
           <div className="faculty-profile-name">{user.name}</div>
@@ -63,7 +100,7 @@ export default function FacultyHome({ currentUser, onNavigate }) {
       </div>
 
       {/* Summary Cards Row */}
-      <div className="top-panels-grid" ref={panelsRef} style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className="top-panels-grid top-panels-grid--two-col" ref={panelsRef}>
         <StatCard
           headerTitle="TOTAL CONTRIBUTIONS (VERIFIED)"
           value={loading ? '...' : formatCurrency(totalContributions)}
@@ -85,7 +122,7 @@ export default function FacultyHome({ currentUser, onNavigate }) {
       </div>
 
       {/* Side-by-side (Laptop) / Stacked (Phone) Content Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '22px' }}>
+      <div className="faculty-home-split-grid">
         {/* Assistance Requests Section */}
         <div className="recent-activity-panel">
           <div className="panel-header">
@@ -133,39 +170,24 @@ export default function FacultyHome({ currentUser, onNavigate }) {
             </button>
           </div>
 
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentPayments.length > 0 ? (
-                  recentPayments.map(p => (
-                    <tr key={p.id}>
-                      <td>{p.date}</td>
-                      <td>{p.type}</td>
-                      <td>
-                         <span className={`status-tag ${p.status === 'Verified' ? 'verified' : p.status === 'Pending' ? 'to-verify' : 'declined'}`} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
-                           {p.status}
-                         </span>
-                      </td>
-                      <td><strong className="amount-text">{p.amount}</strong></td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No recent payments found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {recentPayments.length > 0 ? (
+              recentPayments.map(p => (
+                <div key={p.id} className="pending-list-item">
+                  <div className="item-left">
+                    <span className="item-member" style={{ fontSize: '0.95rem' }}>{p.type}</span>
+                    <span className="item-benefit">Paid: {p.date} • <strong style={{ color: 'var(--primary-maroon)' }}>{p.amount}</strong></span>
+                  </div>
+                  <span className={`status-tag ${p.status === 'Verified' || p.status === 'Completed' ? 'verified' : p.status === 'Pending' || p.status === 'To verify' ? 'to-verify' : 'declined'}`} style={{ padding: '4px 12px', fontSize: '0.72rem' }}>
+                    {p.status}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>
+                No recent payments found.
+              </div>
+            )}
           </div>
         </div>
       </div>

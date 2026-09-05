@@ -35,10 +35,17 @@ export default function FacultyProfile({ currentUser, onLogout }) {
   const [profileSaving, setProfileSaving] = useState(false);
 
   // Profile Photo State
-  const STORAGE_BASE = 'http://localhost:8000/storage/';
-  const [photoPreview, setPhotoPreview] = useState(
-    user.profile_photo ? STORAGE_BASE + user.profile_photo : null
-  );
+  const resolveInitialPhoto = () => {
+    if (user.profile_photo_url) return user.profile_photo_url;
+    if (user.profile_photo) {
+      if (user.profile_photo.startsWith('http://') || user.profile_photo.startsWith('https://')) {
+        return user.profile_photo;
+      }
+      return `/storage/${user.profile_photo.replace(/^\/+/, '')}`;
+    }
+    return null;
+  };
+  const [photoPreview, setPhotoPreview] = useState(resolveInitialPhoto);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
@@ -140,13 +147,22 @@ export default function FacultyProfile({ currentUser, onLogout }) {
         return;
       }
 
-      // Persist new photo URL in localStorage
+      // Persist new photo URL in localStorage and notify listeners
       const stored = localStorage.getItem('ucare_user');
+      let updatedUser = null;
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          localStorage.setItem('ucare_user', JSON.stringify({ ...parsed, profile_photo: data.profile_photo }));
+          updatedUser = {
+            ...parsed,
+            profile_photo: data.profile_photo,
+            profile_photo_url: data.profile_photo_url || data.photo_url || `/storage/${data.profile_photo}`
+          };
+          localStorage.setItem('ucare_user', JSON.stringify(updatedUser));
         } catch {}
+      }
+      if (updatedUser) {
+        window.dispatchEvent(new CustomEvent('ucare_user_updated', { detail: updatedUser }));
       }
       setPhotoFile(null);
       setProfileFeedback('Success: Profile photo updated!');

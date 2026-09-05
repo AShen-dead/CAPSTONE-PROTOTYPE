@@ -22,6 +22,11 @@ class BenefitType extends Model
 
     public $timestamps = false;
 
+    public function getNameAttribute(): string
+    {
+        return $this->benefit_name ?? '';
+    }
+
     public function benefitRequests(): HasMany
     {
         return $this->hasMany(BenefitRequest::class, 'benefit_type_id');

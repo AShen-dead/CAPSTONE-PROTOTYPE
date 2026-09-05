@@ -64,8 +64,9 @@ class DashboardController extends Controller
         }
 
         // ── Pending benefit requests ──────────────────────────────────────────
-        $pendingRequests = BenefitRequest::with(['facultyMember', 'benefitType'])
-            ->orderByDesc('created_at')
+        $pendingRequests = BenefitRequest::with(['facultyMember.user', 'benefitType'])
+            ->orderByDesc('request_date')
+            ->orderByDesc('id')
             ->limit(5)
             ->get();
 
@@ -74,11 +75,12 @@ class DashboardController extends Controller
         $mostRecent = null;
         if ($topRequest) {
             $fm = $topRequest->facultyMember;
+            $name = $fm ? ($fm->user?->name ?? trim("{$fm->first_name} {$fm->last_name}")) : '—';
             $mostRecent = [
-                'benefitType' => $topRequest->benefitType->name ?? 'Benefit',
-                'memberName'  => $fm ? trim("{$fm->first_name} {$fm->last_name}") : '—',
-                'dateFiled'   => $topRequest->created_at
-                    ? Carbon::parse($topRequest->created_at)->format('M d, Y')
+                'benefitType' => $topRequest->benefitType->benefit_name ?? $topRequest->benefitType->name ?? 'Benefit',
+                'memberName'  => $name ?: '—',
+                'dateFiled'   => $topRequest->request_date
+                    ? Carbon::parse($topRequest->request_date)->format('M d, Y')
                     : '—',
                 'amount'      => '₱ ' . number_format((float) $topRequest->amount_requested, 2),
                 'status'      => $topRequest->status === 'Pending' ? 'Pending Review' : $topRequest->status,
@@ -88,41 +90,48 @@ class DashboardController extends Controller
         // Compact list rows (up to 4 below the featured one)
         $recentList = $pendingRequests->skip(1)->take(4)->map(function ($req) {
             $fm = $req->facultyMember;
+            $name = $fm ? ($fm->user?->name ?? trim("{$fm->first_name} {$fm->last_name}")) : '—';
             $status     = $req->status ?? 'Pending';
             $statusType = strtolower($status);
             return [
                 'id'          => $req->id,
-                'memberName'  => $fm ? trim("{$fm->first_name} {$fm->last_name}") : '—',
-                'benefitType' => $req->benefitType->name ?? 'Benefit',
+                'memberName'  => $name ?: '—',
+                'benefitType' => $req->benefitType->benefit_name ?? $req->benefitType->name ?? 'Benefit',
                 'status'      => $status,
                 'statusType'  => $statusType,
             ];
         })->values();
 
         // ── Recent payments (last 5) ──────────────────────────────────────────
-        $recentPayments = Payment::with(['facultyMember', 'contribution'])
+        $recentPayments = Payment::with(['facultyMember.user', 'contribution'])
             ->orderByDesc('payment_date')
             ->limit(5)
             ->get()
             ->map(function ($p) {
                 $fm   = $p->facultyMember;
+                $user = $fm?->user;
                 $name = $fm ? trim("{$fm->first_name} {$fm->last_name}") : '—';
                 $initials = collect(explode(' ', $name))
                     ->map(fn($w) => strtoupper($w[0] ?? ''))
                     ->take(2)
                     ->implode('');
 
+                $photo = $user?->profile_photo;
+                $photoUrl = $photo ? (str_starts_with($photo, 'http') ? $photo : asset('storage/' . $photo)) : null;
+
                 return [
-                    'id'     => $p->id,
-                    'member' => $name,
-                    'avatar' => $initials ?: '??',
-                    'date'   => $p->payment_date
+                    'id'                => $p->id,
+                    'member'            => $name,
+                    'avatar'            => $initials ?: '??',
+                    'profile_photo'     => $photo,
+                    'profile_photo_url' => $photoUrl,
+                    'date'              => $p->payment_date
                         ? Carbon::parse($p->payment_date)->format('M d, Y')
                         : '—',
-                    'type'   => $p->payment_method ?? 'Contribution',
-                    'refNo'  => $p->reference_no ?? "PAY-{$p->id}",
-                    'amount' => '₱ ' . number_format((float) $p->amount, 2),
-                    'status' => $p->status ?? 'Pending',
+                    'type'              => $p->payment_method ?? 'Contribution',
+                    'refNo'             => $p->reference_no ?? "PAY-{$p->id}",
+                    'amount'            => '₱ ' . number_format((float) $p->amount, 2),
+                    'status'            => $p->status ?? 'Pending',
                 ];
             });
 
@@ -138,9 +147,10 @@ class DashboardController extends Controller
                 'data'   => $monthlyData,
                 'labels' => $monthlyLabels,
             ],
-            'most_recent_request' => $mostRecent,
-            'recent_requests'     => $recentList,
-            'recent_payments'     => $recentPayments,
+            'most_recent_request'   => $mostRecent,
+            'recent_requests'       => $recentList,
+            'recent_payments'       => $recentPayments,
+            'pending_benefit_count' => BenefitRequest::where('status', 'Pending')->count(),
         ]);
     }
 }

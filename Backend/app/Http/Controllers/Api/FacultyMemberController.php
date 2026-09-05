@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class FacultyMemberController extends Controller
 {
@@ -62,6 +63,9 @@ class FacultyMemberController extends Controller
                 ->where('status', 'Verified')
                 ->sum('amount');
 
+            $photo = $fm->user?->profile_photo;
+            $photoUrl = $photo ? (str_starts_with($photo, 'http') ? $photo : asset('storage/' . $photo)) : null;
+
             return [
                 'id'                  => $fm->id,
                 'user_id'             => $fm->user_id,
@@ -71,7 +75,8 @@ class FacultyMemberController extends Controller
                 'department'          => $fm->department ?: 'General',
                 'contact_no'          => $fm->contact_no,
                 'status'              => $fm->status ?: 'Active',
-                'profile_photo'       => $fm->user?->profile_photo,
+                'profile_photo'       => $photo,
+                'profile_photo_url'   => $photoUrl,
                 'total_contributions' => $total,
             ];
         });
@@ -95,16 +100,23 @@ class FacultyMemberController extends Controller
             'contact_no'           => ['nullable', 'string', 'max:50'],
             'status'               => ['nullable', 'string', 'max:50'],
             'initial_contribution' => ['nullable', 'numeric', 'min:0'],
+            'profile_photo'        => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
         ]);
 
         $result = DB::transaction(function () use ($validated, $request) {
             $password = $validated['password'] ?? 'password123';
 
+            $photoPath = null;
+            if ($request->hasFile('profile_photo')) {
+                $photoPath = $request->file('profile_photo')->store('profile_photos', 'public');
+            }
+
             $user = User::create([
-                'name'     => $validated['name'],
-                'email'    => $validated['email'],
-                'password' => Hash::make($password),
-                'role'     => 'faculty',
+                'name'          => $validated['name'],
+                'email'         => $validated['email'],
+                'password'      => Hash::make($password),
+                'role'          => 'faculty',
+                'profile_photo' => $photoPath,
             ]);
 
             $names = explode(' ', $validated['name'], 2);
@@ -158,15 +170,48 @@ class FacultyMemberController extends Controller
     public function update(Request $request, FacultyMember $facultyMember): JsonResponse
     {
         $validated = $request->validate([
-            'employee_no' => ['sometimes', 'string', 'unique:faculty_members,employee_no,' . $facultyMember->id],
-            'first_name'  => ['sometimes', 'string', 'max:255'],
-            'last_name'   => ['sometimes', 'string', 'max:255'],
-            'department'  => ['nullable', 'string', 'max:255'],
-            'contact_no'  => ['nullable', 'string', 'max:50'],
-            'status'      => ['nullable', 'string', 'max:50'],
+            'name'          => ['sometimes', 'string', 'max:255'],
+            'email'         => ['sometimes', 'email', 'unique:users,email,' . $facultyMember->user_id],
+            'employee_no'   => ['sometimes', 'string', 'unique:faculty_members,employee_no,' . $facultyMember->id],
+            'first_name'    => ['sometimes', 'string', 'max:255'],
+            'last_name'     => ['sometimes', 'string', 'max:255'],
+            'department'    => ['nullable', 'string', 'max:255'],
+            'contact_no'    => ['nullable', 'string', 'max:50'],
+            'status'        => ['nullable', 'string', 'max:50'],
+            'profile_photo' => ['nullable'],
         ]);
 
-        $facultyMember->update($validated);
+        $user = $facultyMember->user;
+
+        if ($request->hasFile('profile_photo')) {
+            if ($user && $user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+            $path = $request->file('profile_photo')->store('profile_photos', 'public');
+            if ($user) {
+                $user->update(['profile_photo' => $path]);
+            }
+        } elseif ($request->input('profile_photo') === 'remove' || $request->input('remove_photo') === 'true') {
+            if ($user && $user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+            if ($user) {
+                $user->update(['profile_photo' => null]);
+            }
+        }
+
+        if ($user && isset($validated['name'])) {
+            $user->update(['name' => $validated['name']]);
+            $names = explode(' ', $validated['name'], 2);
+            $facultyMember->first_name = $names[0] ?? $validated['name'];
+            $facultyMember->last_name = $names[1] ?? '';
+        }
+        if ($user && isset($validated['email'])) {
+            $user->update(['email' => $validated['email']]);
+        }
+
+        $facultyMember->fill(collect($validated)->except(['name', 'email', 'profile_photo', 'remove_photo'])->toArray());
+        $facultyMember->save();
 
         return response()->json(['data' => $facultyMember->fresh()->load('user')]);
     }
@@ -176,7 +221,14 @@ class FacultyMemberController extends Controller
      */
     public function destroy(FacultyMember $facultyMember): JsonResponse
     {
+        $user = $facultyMember->user;
+        if ($user && $user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+            Storage::disk('public')->delete($user->profile_photo);
+        }
         $facultyMember->delete();
+        if ($user) {
+            $user->delete();
+        }
 
         return response()->json(null, 204);
     }

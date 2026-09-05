@@ -30,10 +30,15 @@ function mapPayment(p) {
   const fm   = p.faculty_member ?? {};
   const name = fm.first_name ? `${fm.first_name} ${fm.last_name}` : (p.member ?? '—');
   const proof = p.proof ?? null;
+  const user = fm.user ?? null;
+  const photo = user?.profile_photo ?? null;
+  const photoUrl = photo ? (photo.startsWith('http') ? photo : STORAGE_BASE + photo.replace(/^\/+/, '')) : null;
+
   return {
     id:       p.id,
     member:   name,
     avatar:   getInitials(name),
+    photoUrl,
     type:     p.payment_method ?? 'Contribution',
     refNo:    p.reference_no  ?? `PAY-${p.id}`,
     status:   p.status        ?? 'Pending',
@@ -309,7 +314,35 @@ export default function ManagePaymentsPage() {
                     <tr key={item.id}>
                       <td>
                         <div className="member-cell">
-                          <div className="member-avatar">{item.avatar}</div>
+                          <div 
+                            className="member-avatar"
+                            style={{ 
+                              overflow: 'hidden', 
+                              padding: 0,
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '50%',
+                              flexShrink: 0,
+                              background: 'linear-gradient(135deg, #8B1E3F 0%, #6E1731 100%)',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '700',
+                              border: '1.5px solid #F4B942'
+                            }}
+                          >
+                            {item.photoUrl ? (
+                              <img 
+                                src={item.photoUrl} 
+                                alt={item.member} 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                              />
+                            ) : (
+                              item.avatar
+                            )}
+                          </div>
                           <div>
                             <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{item.member}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.date}</div>
@@ -400,7 +433,7 @@ export default function ManagePaymentsPage() {
 
             <div className="modal-body-form" style={{ gap: '16px' }}>
               {/* Metadata row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', background: '#F8FAFC', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
+              <div className="modal-meta-grid-3" style={{ background: '#F8FAFC', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-light)' }}>
                 <div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>Reference #</div>
                   <div style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--primary-maroon)' }}>{selectedProof.refNo}</div>

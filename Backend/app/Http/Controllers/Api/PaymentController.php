@@ -19,7 +19,7 @@ class PaymentController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Payment::with(['facultyMember', 'contribution', 'proof', 'recordedBy']);
+        $query = Payment::with(['facultyMember.user', 'contribution', 'proof', 'recordedBy']);
 
         if ($request->filled('faculty_id')) {
             $query->where('faculty_id', $request->faculty_id);

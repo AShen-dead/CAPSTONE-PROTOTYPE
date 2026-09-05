@@ -190,9 +190,11 @@ class AuthController extends Controller
         $user->update(['profile_photo' => $path]);
 
         return response()->json([
-            'message'       => 'Photo updated successfully.',
-            'profile_photo' => $path,
-            'photo_url'     => asset('storage/' . $path),
+            'message'           => 'Photo updated successfully.',
+            'profile_photo'     => $path,
+            'photo_url'         => asset('storage/' . $path),
+            'profile_photo_url' => asset('storage/' . $path),
+            'user'              => $user->fresh()->load('facultyMember'),
         ]);
     }
 }
