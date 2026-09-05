@@ -79,7 +79,7 @@ export default function FacultyProfile({ currentUser, onLogout }) {
       {/* Profile Header */}
       <div className="faculty-profile-header-card">
         <div className="faculty-avatar-large">
-          {user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'FM'}
+          {(user?.name || 'Prof. Maria Santos').split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'FM'}
         </div>
         <div className="faculty-profile-info">
           <div className="faculty-profile-name">{user.name}</div>

@@ -247,7 +247,7 @@ export default function Navbar({
           {/* User Profile */}
           <div className="user-profile-summary">
             <div className="avatar-circle">
-              {userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
+              {(userName || 'User').split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'SA'}
             </div>
             <div className="user-name-role">
               <span className="user-name">{userName}</span>
