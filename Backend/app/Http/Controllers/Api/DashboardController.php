@@ -9,58 +9,127 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+use Illuminate\Http\Request;
+
 class DashboardController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $now   = Carbon::now();
-        $month = $now->month;
-        $year  = $now->year;
+        $now          = Carbon::now();
+        $currentMonth = $now->month;
+        $currentYear  = $now->year;
 
         $verifiedStatuses = ['Verified', 'Completed', 'verified', 'completed'];
 
-        // ── Total contributions (sum of all verified/completed payments) ──────
-        $totalContributions = Payment::whereIn('status', $verifiedStatuses)->sum('amount');
+        // Determine available years from payments and ensure recent years are present
+        $dbYears = Payment::whereNotNull('payment_date')
+            ->get(['payment_date'])
+            ->map(fn($p) => (int) Carbon::parse($p->payment_date)->format('Y'))
+            ->unique()
+            ->toArray();
 
-        // ── This month contributions ──────────────────────────────────────────
-        $thisMonthContributions = Payment::whereIn('status', $verifiedStatuses)
-            ->whereMonth('payment_date', $month)
-            ->whereYear('payment_date', $year)
-            ->sum('amount');
+        $availableYears = collect(array_merge([$currentYear, $currentYear - 1, $currentYear - 2], $dbYears))
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->toArray();
 
-        // ── Last 6 months: build month list safely (avoids end-of-month overflow) ──
-        $months = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $m = ($month - $i - 1 + 120) % 12 + 1;
-            $y = $year + intdiv($month - $i - 1 + 120, 12) - intdiv(119, 12);
-            $target = Carbon::createFromDate($year, $month, 1)->subMonths($i);
-            $months[] = $target;
-        }
+        $selectedYear = $request->query('year', (string) $currentYear);
+        $isAllYears   = strtolower((string) $selectedYear) === 'all';
 
-        // Cumulative bar chart
-        $cumulativeData   = [];
-        $cumulativeLabels = [];
-        $runningTotal     = 0;
-        foreach ($months as $target) {
-            $monthSum = Payment::whereIn('status', $verifiedStatuses)
-                ->whereMonth('payment_date', $target->month)
-                ->whereYear('payment_date', $target->year)
+        // ── Overall all-time total ────────────────────────────────────────────
+        $allTimeTotal = (float) Payment::whereIn('status', $verifiedStatuses)->sum('amount');
+
+        if ($isAllYears) {
+            $totalContributions = $allTimeTotal;
+            $statSubtitle       = "All-time overall collected funds";
+
+            $thisMonthContributions = (float) Payment::whereIn('status', $verifiedStatuses)
+                ->whereMonth('payment_date', $currentMonth)
+                ->whereYear('payment_date', $currentYear)
                 ->sum('amount');
-            $runningTotal    += (float) $monthSum;
-            $cumulativeData[] = $runningTotal;
-            $cumulativeLabels[] = $target->format('M');
-        }
+            $currentMonthLabel = $now->format('F Y');
+            $monthSubtitle     = "{$currentMonthLabel} faculty union contribution activity";
 
-        // Monthly area chart
-        $monthlyData   = [];
-        $monthlyLabels = [];
-        foreach ($months as $target) {
-            $monthSum = Payment::whereIn('status', $verifiedStatuses)
-                ->whereMonth('payment_date', $target->month)
-                ->whereYear('payment_date', $target->year)
+            // Rolling last 6 months for 'all'
+            $months = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $target = Carbon::createFromDate($currentYear, $currentMonth, 1)->subMonths($i);
+                $months[] = $target;
+            }
+
+            $cumulativeData   = [];
+            $cumulativeLabels = [];
+            $runningTotal     = 0;
+            foreach ($months as $target) {
+                $monthSum = (float) Payment::whereIn('status', $verifiedStatuses)
+                    ->whereMonth('payment_date', $target->month)
+                    ->whereYear('payment_date', $target->year)
+                    ->sum('amount');
+                $runningTotal    += $monthSum;
+                $cumulativeData[] = $runningTotal;
+                $cumulativeLabels[] = $target->format('M');
+            }
+
+            $monthlyData   = [];
+            $monthlyLabels = [];
+            foreach ($months as $target) {
+                $monthSum = (float) Payment::whereIn('status', $verifiedStatuses)
+                    ->whereMonth('payment_date', $target->month)
+                    ->whereYear('payment_date', $target->year)
+                    ->sum('amount');
+                $monthlyData[]   = $monthSum;
+                $monthlyLabels[] = $target->format('M');
+            }
+        } else {
+            $yearInt = (int) $selectedYear;
+            $yearTotal = (float) Payment::whereIn('status', $verifiedStatuses)
+                ->whereYear('payment_date', $yearInt)
                 ->sum('amount');
-            $monthlyData[]   = (float) $monthSum;
-            $monthlyLabels[] = $target->format('M');
+
+            $totalContributions = $yearTotal;
+            $statSubtitle       = "Total verified collections for FY {$yearInt}";
+
+            if ($yearInt === $currentYear) {
+                $thisMonthContributions = (float) Payment::whereIn('status', $verifiedStatuses)
+                    ->whereMonth('payment_date', $currentMonth)
+                    ->whereYear('payment_date', $currentYear)
+                    ->sum('amount');
+                $currentMonthLabel = $now->format('F Y');
+                $monthSubtitle     = "{$currentMonthLabel} contribution activity";
+            } else {
+                $thisMonthContributions = $yearTotal;
+                $currentMonthLabel = "Annual {$yearInt}";
+                $monthSubtitle     = "Full-year collections for {$yearInt}";
+            }
+
+            // 12 months (Jan - Dec) for the selected year
+            $cumulativeData   = [];
+            $cumulativeLabels = [];
+            $monthlyData      = [];
+            $monthlyLabels    = [];
+            $runningTotal     = 0;
+
+            for ($m = 1; $m <= 12; $m++) {
+                $monthCarbon = Carbon::createFromDate($yearInt, $m, 1);
+                $isFutureMonth = ($yearInt === $currentYear && $m > $currentMonth);
+
+                $monthSum = 0;
+                if (!$isFutureMonth) {
+                    $monthSum = (float) Payment::whereIn('status', $verifiedStatuses)
+                        ->whereMonth('payment_date', $m)
+                        ->whereYear('payment_date', $yearInt)
+                        ->sum('amount');
+                    $runningTotal += $monthSum;
+                }
+
+                $cumulativeData[]   = $isFutureMonth ? 0 : $runningTotal;
+                $cumulativeLabels[] = $monthCarbon->format('M');
+
+                $monthlyData[]   = $monthSum;
+                $monthlyLabels[] = $monthCarbon->format('M');
+            }
         }
 
         // ── Pending benefit requests ──────────────────────────────────────────
@@ -136,9 +205,14 @@ class DashboardController extends Controller
             });
 
         return response()->json([
+            'selected_year'             => (string) $selectedYear,
+            'available_years'           => $availableYears,
+            'stat_subtitle'             => $statSubtitle,
+            'month_subtitle'            => $monthSubtitle,
+            'all_time_total'            => (float) $allTimeTotal,
             'total_contributions'       => (float) $totalContributions,
             'this_month_contributions'  => (float) $thisMonthContributions,
-            'current_month_label'       => $now->format('F Y'),
+            'current_month_label'       => $currentMonthLabel,
             'cumulative_chart'          => [
                 'data'   => $cumulativeData,
                 'labels' => $cumulativeLabels,

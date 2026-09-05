@@ -64,9 +64,10 @@ export default function ManageMembersPage() {
   const previewOverlayRef = useRef(null);
   const addFileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
+  const categoryDropdownRef = useRef(null);
 
   // Category Filter items
-  const categories = ['All', 'Active', 'On leave', 'Retired'];
+  const categories = ['All', 'Active', 'Inactive', 'On leave', 'Retired'];
 
   // Load real members from API
   const loadMembers = async () => {
@@ -105,6 +106,21 @@ export default function ManageMembersPage() {
       animatePageEntrance(containerRef.current);
     }
   }, []);
+
+  // Close category dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
+        setShowCategoryDropdown(false);
+      }
+    };
+    if (showCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCategoryDropdown]);
 
   useEffect(() => {
     if (tableRef.current) {
@@ -317,17 +333,21 @@ export default function ManageMembersPage() {
     }
   };
 
-  // Delete Member
-  const handleDeleteMember = async (member) => {
-    if (!window.confirm(`Are you sure you want to remove ${member.name}? This will deactivate their faculty account.`)) {
+  // Deactivate / Reactivate Member (preserves records without disappearing)
+  const handleToggleDeactivate = async (member) => {
+    const isInactive = (member.status || '').toLowerCase() === 'inactive';
+    const actionWord = isInactive ? 'activate' : 'deactivate';
+    const newStatus = isInactive ? 'Active' : 'Inactive';
+
+    if (!window.confirm(`Are you sure you want to ${actionWord} ${member.name}? This will mark their account as ${newStatus} without removing their historical records.`)) {
       return;
     }
 
     try {
-      await deleteFacultyMember(member.id);
+      await updateFacultyMember(member.id, { status: newStatus });
       await loadMembers();
     } catch (err) {
-      alert(err?.data?.message || 'Failed to delete member.');
+      alert(err?.data?.message || `Failed to ${actionWord} member.`);
     }
   };
 
@@ -384,7 +404,7 @@ export default function ManageMembersPage() {
         </div>
 
         {/* Categories Dropdown Filter Button */}
-        <div className="category-dropdown-container">
+        <div className="category-dropdown-container" ref={categoryDropdownRef}>
           <button 
             className="btn-categories"
             onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
@@ -467,6 +487,8 @@ export default function ManageMembersPage() {
                   const s = (member.status || '').toLowerCase();
                   if (s === 'on leave') statusClass = 'leave';
                   if (s === 'retired') statusClass = 'retired';
+                  if (s === 'inactive' || s === 'deactivated') statusClass = 'inactive';
+                  const isInactive = s === 'inactive' || s === 'deactivated';
 
                   return (
                     <tr key={member.id}>
@@ -563,11 +585,17 @@ export default function ManageMembersPage() {
                           </button>
                           <button
                             className="btn-sm btn-outline"
-                            onClick={() => handleDeleteMember(member)}
-                            title="Delete Member"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', color: '#DC2626', borderColor: '#FCA5A5' }}
+                            onClick={() => handleToggleDeactivate(member)}
+                            title={isInactive ? "Reactivate Faculty Account" : "Deactivate Faculty Account"}
+                            style={{ 
+                              padding: '4px 10px', 
+                              fontSize: '0.75rem', 
+                              color: isInactive ? '#16A34A' : '#DC2626', 
+                              borderColor: isInactive ? '#86EFAC' : '#FCA5A5',
+                              backgroundColor: isInactive ? '#F0FDF4' : '#FEF2F2'
+                            }}
                           >
-                            Delete
+                            {isInactive ? 'Activate' : 'Deactivate'}
                           </button>
                         </div>
                       </td>
@@ -752,6 +780,7 @@ export default function ManageMembersPage() {
                     onChange={(e) => setNewMemberStatus(e.target.value)}
                   >
                     <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
                     <option value="On leave">On leave</option>
                     <option value="Retired">Retired</option>
                   </select>
@@ -938,6 +967,7 @@ export default function ManageMembersPage() {
                   onChange={(e) => setEditStatus(e.target.value)}
                 >
                   <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
                   <option value="On leave">On leave</option>
                   <option value="Retired">Retired</option>
                 </select>

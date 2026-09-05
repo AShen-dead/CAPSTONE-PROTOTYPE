@@ -11,7 +11,8 @@ export default function StatCard({
   isMainFocus = false,
   data = [110000, 135000, 120000, 155000, 165000, 145800], // Dynamic backend ready data
   labels = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'], // Dynamic month labels
-  currencySymbol = '₱ '
+  currencySymbol = '₱ ',
+  watermark
 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const valueRef = useRef(null);
@@ -131,11 +132,12 @@ export default function StatCard({
           <line x1="0" y1={height - 20} x2={width} y2={height - 20} stroke="#E2E8F0" strokeDasharray="3 3" />
 
           {data.map((val, idx) => {
-            const barHeight = Math.max(12, (val / maxVal) * (height - 35));
+            const hasValue = val > 0;
+            const barHeight = hasValue ? Math.max(10, (val / maxVal) * (height - 35)) : 4;
             const x = padding + idx * (barWidth + gap);
             const y = height - 20 - barHeight;
             const isHovered = hoveredIndex === idx;
-            const isHighest = val === maxVal;
+            const isHighest = hasValue && val === maxVal;
 
             return (
               <g 
@@ -149,8 +151,12 @@ export default function StatCard({
                   y={y}
                   width={barWidth}
                   height={barHeight}
-                  rx="4"
-                  fill={isHovered ? '#1B5E20' : isHighest ? '#2E8B57' : '#C1E6D0'}
+                  rx={hasValue ? "4" : "2"}
+                  fill={
+                    isHovered 
+                      ? (hasValue ? '#1B5E20' : '#94A3B8') 
+                      : (isHighest ? '#2E8B57' : hasValue ? '#68D391' : '#E2E8F0')
+                  }
                   style={{ transition: 'all 0.15s ease' }}
                 />
                 {/* X Axis Labels */}
@@ -159,8 +165,8 @@ export default function StatCard({
                   y={height - 4}
                   textAnchor="middle"
                   fontSize="9"
-                  fill="#64748B"
-                  fontWeight="600"
+                  fill={hasValue ? "#334155" : "#94A3B8"}
+                  fontWeight={hasValue ? "700" : "500"}
                 >
                   {labels[idx] || `M${idx + 1}`}
                 </text>
@@ -235,7 +241,7 @@ export default function StatCard({
       <div className="chart-placeholder">
         {chartType === 'area' ? renderAreaChart() : renderBarChart()}
         <span className="chart-watermark">
-          {chartType === 'area' ? 'Monthly Activity Trend' : 'Cumulative Growth Analytics'}
+          {watermark || (chartType === 'area' ? 'Monthly Activity Trend' : 'Monthly Contributions Breakdown')}
         </span>
       </div>
     </div>

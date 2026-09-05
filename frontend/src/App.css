@@ -469,6 +469,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  position: relative;
+  z-index: 100;
 }
 
 .dashboard-header-text {
@@ -497,6 +499,13 @@
   gap: 16px;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 30;
+}
+
+.category-dropdown-container {
+  position: relative;
+  z-index: 30;
 }
 
 .search-field-container {
@@ -568,11 +577,17 @@
   color: var(--primary-maroon);
 }
 
-.filter-tab.active {
-  background: linear-gradient(135deg, #8B1E3F 0%, #6E1731 100%);
-  color: #FFFFFF;
-  border-color: #6E1731;
+.filter-tab.active,
+.btn-categories.filter-tab.active {
+  background: linear-gradient(135deg, #8B1E3F 0%, #6E1731 100%) !important;
+  color: #FFFFFF !important;
+  border-color: #6E1731 !important;
   box-shadow: 0 4px 14px rgba(139, 30, 63, 0.3);
+}
+
+.filter-tab.active span,
+.btn-categories.filter-tab.active span {
+  color: #FFFFFF !important;
 }
 
 .filter-count-badge {
@@ -619,6 +634,8 @@
   grid-template-columns: 290px 1fr 350px;
   gap: 22px;
   align-items: stretch;
+  position: relative;
+  z-index: 1;
 }
 
 /* Cards */
@@ -836,6 +853,8 @@
 
 /* Tables & Activity Panel */
 .recent-activity-panel {
+  position: relative;
+  z-index: 1;
   background-color: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -1070,7 +1089,7 @@
   background-color: #FDF2F5;
 }
 
-/* Category Filter Dropdown Menu */
+/* Category & Dashboard Filter Dropdown Menu */
 .dropdown-menu {
   position: absolute;
   right: 0;
@@ -1078,12 +1097,17 @@
   background-color: #FFFFFF;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.18);
   min-width: 180px;
-  z-index: 50;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   padding: 6px 0;
+}
+
+.dashboard-year-filter {
+  position: relative;
+  z-index: 100;
 }
 
 .dropdown-item {
@@ -1686,6 +1710,20 @@ textarea.form-input {
   .dashboard-header .btn-primary {
     width: 100%;
     justify-content: center;
+  }
+
+  .dashboard-year-filter {
+    width: 100%;
+  }
+
+  .dashboard-year-filter .btn-categories {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dashboard-year-filter .dropdown-menu {
+    width: 100%;
+    right: auto;
   }
 
   /* Home Dashboard Grid Stacking */

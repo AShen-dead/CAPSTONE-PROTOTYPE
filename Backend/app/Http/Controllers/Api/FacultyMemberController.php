@@ -217,19 +217,16 @@ class FacultyMemberController extends Controller
     }
 
     /**
-     * Delete a faculty member (cascades to their user account).
+     * Deactivate a faculty member (instead of permanent hard deletion so historical records stay intact).
      */
     public function destroy(FacultyMember $facultyMember): JsonResponse
     {
-        $user = $facultyMember->user;
-        if ($user && $user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
-            Storage::disk('public')->delete($user->profile_photo);
-        }
-        $facultyMember->delete();
-        if ($user) {
-            $user->delete();
-        }
+        $newStatus = strtolower((string) $facultyMember->status) === 'inactive' ? 'Active' : 'Inactive';
+        $facultyMember->update(['status' => $newStatus]);
 
-        return response()->json(null, 204);
+        return response()->json([
+            'data'    => $facultyMember->fresh()->load('user'),
+            'message' => "Faculty member status updated to {$newStatus}."
+        ]);
     }
 }

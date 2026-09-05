@@ -148,16 +148,10 @@ export default function ApproveBenefitRequestsPage() {
         {['All', 'Pending', 'Approved', 'Declined'].map((tab) => (
           <button
             key={tab}
-            className={`btn-categories filter-tab ${activeFilter === tab ? 'active' : ''}`}
+            className={`filter-tab ${activeFilter === tab ? 'active' : ''}`}
             onClick={() => setActiveFilter(tab)}
-            style={{
-              borderColor: activeFilter === tab ? 'var(--primary-maroon)' : undefined,
-              backgroundColor: activeFilter === tab ? '#FDF2F5' : undefined,
-              color: activeFilter === tab ? 'var(--primary-maroon)' : undefined,
-              fontWeight: activeFilter === tab ? '800' : '600'
-            }}
           >
-            {tab}
+            <span>{tab}</span>
             {tab === 'Pending' && pendingCount > 0 && (
               <span className="nav-item-badge" style={{ marginLeft: '4px' }}>
                 {pendingCount}

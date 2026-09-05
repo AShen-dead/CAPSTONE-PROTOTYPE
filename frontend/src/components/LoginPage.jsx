@@ -104,19 +104,44 @@ function LoginPage({ onLoginSuccess, onLogin }) {
 
           <div className="login-brand-features">
             <div className="login-feature-item">
-              <span className="login-feature-icon">💰</span>
+              <span className="login-feature-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+                </svg>
+              </span>
               <span>Contribution tracking &amp; payments</span>
             </div>
             <div className="login-feature-item">
-              <span className="login-feature-icon">📋</span>
+              <span className="login-feature-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                  <path d="m9 14 2 2 4-4" />
+                </svg>
+              </span>
               <span>Benefit requests &amp; approvals</span>
             </div>
             <div className="login-feature-item">
-              <span className="login-feature-icon">👥</span>
+              <span className="login-feature-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </span>
               <span>Faculty member management</span>
             </div>
             <div className="login-feature-item">
-              <span className="login-feature-icon">📊</span>
+              <span className="login-feature-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10" />
+                  <line x1="12" y1="20" x2="12" y2="4" />
+                  <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+              </span>
               <span>Reports &amp; analytics</span>
             </div>
           </div>
@@ -143,7 +168,13 @@ function LoginPage({ onLoginSuccess, onLogin }) {
           {/* Error Banner */}
           {error && (
             <div className="login-error-banner" role="alert">
-              <span className="login-error-icon">⚠️</span>
+              <span className="login-error-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </span>
               <span>{error}</span>
             </div>
           )}
@@ -155,7 +186,12 @@ function LoginPage({ onLoginSuccess, onLogin }) {
                 Email Address
               </label>
               <div className="login-input-wrapper">
-                <span className="login-input-icon">✉️</span>
+                <span className="login-input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                </span>
                 <input
                   id="login-email"
                   type="email"
@@ -176,7 +212,12 @@ function LoginPage({ onLoginSuccess, onLogin }) {
                 </label>
               </div>
               <div className="login-input-wrapper">
-                <span className="login-input-icon">🔒</span>
+                <span className="login-input-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </span>
                 <input
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
@@ -194,7 +235,19 @@ function LoginPage({ onLoginSuccess, onLogin }) {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   tabIndex={-1}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                      <line x1="2" y1="2" x2="22" y2="22" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
                 </button>
               </div>
             </div>
@@ -225,7 +278,12 @@ function LoginPage({ onLoginSuccess, onLogin }) {
             >
               <span className="login-hint-badge login-hint-badge--admin">Admin</span>
               <code>admin@ucare.local</code>
-              <span className="login-hint-sep">➔ Click to Login</span>
+              <span className="login-hint-sep">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                Click to Login
+              </span>
             </div>
             <div 
               className="login-hint-row" 
@@ -234,7 +292,12 @@ function LoginPage({ onLoginSuccess, onLogin }) {
             >
               <span className="login-hint-badge login-hint-badge--faculty">Faculty</span>
               <code>faculty@ucare.local</code>
-              <span className="login-hint-sep">➔ Click to Login</span>
+              <span className="login-hint-sep">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                Click to Login
+              </span>
             </div>
           </div>
 

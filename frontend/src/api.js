@@ -93,10 +93,15 @@ export async function logout() {
 
 /**
  * GET /api/dashboard
- * Returns all stats for the admin home page.
+ * Returns all stats for the admin home page with optional year filtering.
  */
-export function fetchDashboard() {
-  return apiFetch('/dashboard');
+export function fetchDashboard(params = {}) {
+  const query = new URLSearchParams();
+  if (params.year !== undefined && params.year !== null) {
+    query.append('year', params.year);
+  }
+  const qs = query.toString();
+  return apiFetch(`/dashboard${qs ? `?${qs}` : ''}`);
 }
 
 export function fetchFacultyDashboard() {
